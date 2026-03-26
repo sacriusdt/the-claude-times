@@ -104,6 +104,14 @@ export default function ChatInterface() {
                   return updated;
                 });
               }
+              if (parsed.deleted) {
+                assistantMessage += `\n\n🗑 Article deleted: "${parsed.deleted.title}"`;
+                setMessages(prev => {
+                  const updated = [...prev];
+                  updated[updated.length - 1] = { role: 'assistant', content: assistantMessage };
+                  return updated;
+                });
+              }
             } catch {
               // Skip unparseable chunks
             }
@@ -130,30 +138,38 @@ export default function ChatInterface() {
 
   if (!authenticated) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <form onSubmit={handleLogin} className="w-full max-w-sm">
-          <div className="text-center mb-6">
-            <h2 className="font-[family-name:var(--font-heading)] text-2xl font-bold">
-              Newsroom Access
-            </h2>
-            <p className="text-sm text-brand-mid mt-1">
-              Enter the admin password to chat with Jean-Claude
-            </p>
-          </div>
+      <div className="min-h-[65vh] flex items-center justify-center">
+        <form
+          onSubmit={handleLogin}
+          className="w-full max-w-md bg-brand-light p-8"
+          style={{ borderTop: '3px solid #141413', border: '0.5px solid #d4d2c8', borderTopWidth: '3px' }}
+        >
+          <div className="section-head mb-6" />
+          <p className="kicker mb-1">Restricted Desk</p>
+          <h2 className="font-[family-name:var(--font-heading)] text-2xl font-black italic mb-1">
+            Newsroom Access
+          </h2>
+          <p className="ai-note mb-6">
+            <span className="ai-sigil inline-flex mr-1.5">AI</span>
+            Editorial console · Jean-Claude, AI Correspondent
+          </p>
+
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="w-full px-4 py-3 border border-brand-subtle rounded-sm bg-white text-brand-dark placeholder:text-brand-mid/50 focus:outline-none focus:border-brand-orange transition-colors"
+            placeholder="Admin password"
+            className="w-full px-4 py-3 border border-brand-rule bg-brand-light text-brand-dark placeholder:text-brand-mid focus:outline-none focus:border-brand-dark font-[family-name:var(--font-body)] text-sm"
             autoFocus
           />
           {authError && (
-            <p className="mt-2 text-sm text-brand-orange">{authError}</p>
+            <p className="mt-2 font-[family-name:var(--font-heading)] italic text-xs font-bold text-brand-mid">
+              {authError}
+            </p>
           )}
           <button
             type="submit"
-            className="mt-3 w-full px-4 py-3 bg-brand-dark text-brand-light font-[family-name:var(--font-heading)] text-sm font-medium rounded-sm hover:bg-brand-dark/90 transition-colors"
+            className="mt-4 w-full px-4 py-3 bg-brand-dark text-brand-light font-[family-name:var(--font-heading)] text-xs font-bold uppercase tracking-widest hover:opacity-80 transition-opacity"
           >
             Enter Newsroom
           </button>
@@ -163,32 +179,36 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="chat-container border border-brand-subtle rounded-sm bg-white">
-      {/* Chat header */}
-      <div className="px-4 py-3 border-b border-brand-subtle flex items-center justify-between">
-        <div>
-          <h3 className="font-[family-name:var(--font-heading)] font-semibold text-sm">
-            Jean-Claude &mdash; Newsroom
-          </h3>
-          <p className="text-xs text-brand-mid">
-            Ask me to write an article, discuss story ideas, or just chat.
+    <div className="chat-container fade-up">
+      {/* ── Chat header ── */}
+      <div className="px-5 py-3 bg-brand-dark text-brand-light flex items-center justify-between gap-3 border-b border-brand-light/10">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5">
+            <span className="font-[family-name:var(--font-heading)] font-black italic text-sm">Jean-Claude</span>
+            <span className="ai-sigil">AI</span>
+          </div>
+          <p className="ai-note text-brand-light/30 mt-0.5">
+            Newsroom Desk · The Claude Times
           </p>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-brand-green" />
-          <span className="text-xs text-brand-mid">Online</span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-light/40" />
+          <span className="font-[family-name:var(--font-heading)] text-[10px] italic text-brand-light/30">
+            Online
+          </span>
         </div>
       </div>
 
-      {/* Messages */}
+      {/* ── Messages ── */}
       <div className="chat-messages">
         {messages.length === 0 && (
-          <div className="text-center py-12 text-brand-mid">
-            <p className="font-[family-name:var(--font-heading)] text-lg">
-              Bonjour.
+          <div className="text-center py-12">
+            <p className="font-[family-name:var(--font-heading)] italic text-xl font-bold text-brand-dark mb-2">
+              Ready for assignment.
             </p>
-            <p className="mt-1 text-sm">
-              What&apos;s on your mind? Give me a topic and I&apos;ll write you something worth reading.
+            <p className="font-[family-name:var(--font-body)] italic text-sm text-brand-mid max-w-md mx-auto leading-relaxed">
+              Drop a topic and I&apos;ll draft an article with a clear angle and
+              publication-ready structure.
             </p>
           </div>
         )}
@@ -199,10 +219,13 @@ export default function ChatInterface() {
             className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] px-4 py-3 text-sm whitespace-pre-wrap ${
+              className={`max-w-[86%] px-4 py-3 text-sm whitespace-pre-wrap ${
                 msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'
               }`}
             >
+              <div className="font-[family-name:var(--font-heading)] text-[9px] uppercase tracking-widest mb-1.5 opacity-50">
+                {msg.role === 'user' ? 'Editor' : 'Jean-Claude'}
+              </div>
               {msg.content}
             </div>
           </div>
@@ -210,8 +233,8 @@ export default function ChatInterface() {
 
         {loading && messages[messages.length - 1]?.role === 'user' && (
           <div className="flex justify-start mb-3">
-            <div className="chat-bubble-assistant px-4 py-3 text-sm text-brand-mid">
-              <span className="inline-flex gap-1">
+            <div className="chat-bubble-assistant px-4 py-3 text-brand-mid">
+              <span className="inline-flex gap-1.5">
                 <span className="animate-pulse">●</span>
                 <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>●</span>
                 <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>●</span>
@@ -223,23 +246,23 @@ export default function ChatInterface() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      <div className="p-3 border-t border-brand-subtle">
+      {/* ── Input ── */}
+      <div className="p-3 border-t border-brand-rule bg-brand-light">
         <div className="flex gap-2">
           <textarea
             ref={inputRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Write a message... (Shift+Enter for new line)"
-            rows={1}
-            className="flex-1 px-4 py-2.5 border border-brand-subtle rounded-sm bg-brand-light text-sm resize-none focus:outline-none focus:border-brand-orange transition-colors"
+            placeholder="Assign a story… (Enter to send, Shift+Enter for new line)"
+            rows={2}
+            className="flex-1 px-4 py-2.5 border border-brand-rule bg-brand-light font-[family-name:var(--font-body)] text-sm resize-none focus:outline-none focus:border-brand-dark"
             disabled={loading}
           />
           <button
             onClick={sendMessage}
             disabled={loading || !input.trim()}
-            className="px-4 py-2.5 bg-brand-orange text-white font-[family-name:var(--font-heading)] text-sm font-medium rounded-sm hover:bg-brand-orange/90 disabled:opacity-40 transition-all"
+            className="px-5 py-2.5 bg-brand-dark text-brand-light font-[family-name:var(--font-heading)] text-xs font-bold uppercase tracking-widest hover:opacity-75 disabled:opacity-30"
           >
             Send
           </button>

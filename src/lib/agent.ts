@@ -5,6 +5,7 @@ import {
   getUnanalyzedItems,
   markItemsAnalyzed,
   insertArticle,
+  getRecentArticleMemory,
   FeedItem,
 } from './db';
 import {
@@ -56,9 +57,14 @@ export async function analyzeFeeds(): Promise<AnalysisResult[]> {
     date: i.pub_date,
   }));
 
+  const recentArticles = getRecentArticleMemory(20);
+  const memoryBlock = recentArticles.length > 0
+    ? `\n\n## Your Recent Publications (avoid repetition)\n\n${recentArticles.map(a => `- [${a.category}] "${a.title}"${a.subtitle ? ` — ${a.subtitle}` : ''} (${a.published_at.slice(0, 10)})`).join('\n')}`
+    : '';
+
   const response = await complete({
     messages: [
-      { role: 'system', content: JEAN_CLAUDE_SYSTEM + '\n\n' + ANALYSIS_PROMPT },
+      { role: 'system', content: JEAN_CLAUDE_SYSTEM + '\n\n' + ANALYSIS_PROMPT + memoryBlock },
       {
         role: 'user',
         content: `Here are the latest feed items to review:\n\n${JSON.stringify(itemsSummary, null, 2)}`,
@@ -146,7 +152,10 @@ Now write your article. Remember: this is a Jean-Claude piece. Have a point of v
       summary: article.summary || undefined,
       source_items: JSON.stringify(sourceItems.map(i => i.id)),
       image_url: undefined,
-      image_query: article.image_query || undefined,
+      image_query: undefined,
+      geo_lat: article.geo?.lat ?? null,
+      geo_lng: article.geo?.lng ?? null,
+      geo_label: article.geo?.label ?? null,
     });
 
     console.log(`[agent] Published: "${article.title}" → /article/${slug}`);

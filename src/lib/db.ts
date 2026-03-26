@@ -44,6 +44,9 @@ function migrate(db: Database.Database) {
       source_items TEXT,
       image_url TEXT,
       image_query TEXT,
+      geo_lat REAL,
+      geo_lng REAL,
+      geo_label TEXT,
       author TEXT DEFAULT 'Jean-Claude',
       published_at TEXT DEFAULT (datetime('now')),
       status TEXT DEFAULT 'published'
@@ -67,6 +70,15 @@ function migrate(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_articles_published ON articles(published_at);
     CREATE INDEX IF NOT EXISTS idx_feed_items_analyzed ON feed_items(analyzed);
   `);
+
+  // Add geo columns to existing DBs (safe to run multiple times)
+  for (const col of [
+    'ALTER TABLE articles ADD COLUMN geo_lat REAL',
+    'ALTER TABLE articles ADD COLUMN geo_lng REAL',
+    'ALTER TABLE articles ADD COLUMN geo_label TEXT',
+  ]) {
+    try { db.exec(col); } catch { /* column already exists */ }
+  }
 }
 
 // --- Feed Items ---
@@ -108,19 +120,32 @@ export function markItemsAnalyzed(ids: number[]) {
 export function insertArticle(article: {
   slug: string;
   title: string;
-  subtitle?: string;
+  subtitle?: string | null;
   category: string;
   content: string;
   summary?: string;
   source_items?: string;
   image_url?: string;
   image_query?: string;
+  geo_lat?: number | null;
+  geo_lng?: number | null;
+  geo_label?: string | null;
 }) {
   const db = getDb();
   return db.prepare(`
-    INSERT INTO articles (slug, title, subtitle, category, content, summary, source_items, image_url, image_query)
-    VALUES (@slug, @title, @subtitle, @category, @content, @summary, @source_items, @image_url, @image_query)
+    INSERT INTO articles (slug, title, subtitle, category, content, summary, source_items, image_url, image_query, geo_lat, geo_lng, geo_label)
+    VALUES (@slug, @title, @subtitle, @category, @content, @summary, @source_items, @image_url, @image_query, @geo_lat, @geo_lng, @geo_label)
   `).run(article);
+}
+
+export function getGeoArticles() {
+  const db = getDb();
+  return db.prepare(`
+    SELECT id, slug, title, subtitle, summary, category, published_at, geo_lat, geo_lng, geo_label
+    FROM articles
+    WHERE status = 'published' AND geo_lat IS NOT NULL AND geo_lng IS NOT NULL
+    ORDER BY published_at DESC
+  `).all() as GeoArticle[];
 }
 
 export function getArticleBySlug(slug: string) {
@@ -142,6 +167,21 @@ export function getLatestArticles(limit = 20) {
     SELECT * FROM articles WHERE status = 'published'
     ORDER BY published_at DESC LIMIT ?
   `).all(limit) as Article[];
+}
+
+export function deleteArticle(slug: string) {
+  const db = getDb();
+  return db.prepare('DELETE FROM articles WHERE slug = ?').run(slug);
+}
+
+// Returns a lightweight memory of recent articles for editorial deduplication
+export function getRecentArticleMemory(limit = 20) {
+  const db = getDb();
+  return db.prepare(`
+    SELECT title, subtitle, category, summary, published_at
+    FROM articles WHERE status = 'published'
+    ORDER BY published_at DESC LIMIT ?
+  `).all(limit) as Pick<Article, 'title' | 'subtitle' | 'category' | 'summary' | 'published_at'>[];
 }
 
 export function getAllArticles(limit = 100) {
@@ -205,9 +245,25 @@ export interface Article {
   source_items: string | null;
   image_url: string | null;
   image_query: string | null;
+  geo_lat: number | null;
+  geo_lng: number | null;
+  geo_label: string | null;
   author: string;
   published_at: string;
   status: string;
+}
+
+export interface GeoArticle {
+  id: number;
+  slug: string;
+  title: string;
+  subtitle: string | null;
+  summary: string | null;
+  category: string;
+  published_at: string;
+  geo_lat: number;
+  geo_lng: number;
+  geo_label: string | null;
 }
 
 export interface ChatMessage {

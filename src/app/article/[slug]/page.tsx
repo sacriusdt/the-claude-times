@@ -21,13 +21,6 @@ export async function generateMetadata({
   };
 }
 
-const CATEGORY_COLORS: Record<string, string> = {
-  international: 'bg-brand-blue text-white',
-  politics: 'bg-brand-orange text-white',
-  geopolitics: 'bg-brand-dark text-brand-light',
-  business: 'bg-brand-green text-white',
-};
-
 export default async function ArticlePage({
   params,
 }: {
@@ -35,112 +28,107 @@ export default async function ArticlePage({
 }) {
   const { slug } = await params;
   const article = getArticleBySlug(slug);
-
   if (!article) notFound();
 
   const date = new Date(article.published_at).toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
-
   const time = new Date(article.published_at).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
+    hour: '2-digit', minute: '2-digit',
   });
 
-  const categoryColor = CATEGORY_COLORS[article.category] || CATEGORY_COLORS.international;
-
-  // Related articles (same category, excluding current)
   const related = getLatestArticles(10)
     .filter(a => a.id !== article.id)
     .slice(0, 3);
 
   return (
-    <article className="max-w-4xl mx-auto px-4 py-8">
-      {/* Article header */}
+    <article className="max-w-5xl mx-auto px-4 py-10">
+
+      {/* ── Article Header ──────────────────────────────────
+           Section breadcrumb → double-rule → big display headline
+         ─────────────────────────────────────────────────── */}
       <header className="mb-8">
-        <div className="flex items-center gap-3 mb-4">
+
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 mb-4">
           <Link
             href={`/${article.category}`}
-            className={`category-pill ${categoryColor} hover:opacity-80 transition-opacity`}
+            className="kicker hover:text-brand-dark transition-colors"
           >
-            {article.category}
+            {article.category.charAt(0).toUpperCase() + article.category.slice(1)}
           </Link>
-          <span className="text-xs text-brand-mid">{date} &middot; {time}</span>
+          <span className="text-brand-rule">·</span>
+          <Link href="/" className="ai-note hover:text-brand-dark transition-colors">
+            The Claude Times
+          </Link>
         </div>
 
-        <h1 className="font-[family-name:var(--font-heading)] text-3xl md:text-4xl lg:text-5xl font-bold leading-tight">
+        {/* Double-rule above headline */}
+        <div className="section-head mb-5" />
+
+        {/* Display headline */}
+        <h1
+          className="font-[family-name:var(--font-heading)] font-black leading-[1.06] tracking-tight"
+          style={{ fontSize: 'clamp(2rem, 5vw, 3.75rem)' }}
+        >
           {article.title}
         </h1>
 
+        {/* Standfirst */}
         {article.subtitle && (
-          <p className="mt-3 text-xl text-brand-mid leading-relaxed">
+          <p className="mt-4 font-[family-name:var(--font-body)] italic text-xl text-brand-mid leading-relaxed max-w-3xl">
             {article.subtitle}
           </p>
         )}
 
-        {/* Byline */}
-        <div className="mt-6 pt-4 border-t border-brand-subtle flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-brand-orange flex items-center justify-center text-white font-[family-name:var(--font-heading)] font-bold text-sm">
-            JC
-          </div>
-          <div>
-            <div className="font-[family-name:var(--font-heading)] text-sm font-semibold">
-              Jean-Claude
-            </div>
-            <div className="ai-badge mt-0.5">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <circle cx="12" cy="12" r="10" />
-                <path d="M8 12h8M12 8v8" />
-              </svg>
-              AI Journalist — The Claude Times
+        {/* NYT-style byline / dateline row */}
+        <div className="mt-5 pt-4 border-t border-b border-brand-rule flex flex-wrap items-center gap-x-5 gap-y-1.5">
+          <div className="flex items-center gap-2.5">
+            <div className="byline-avatar text-[10px]">JC</div>
+            <div>
+              <p className="font-[family-name:var(--font-heading)] italic text-sm font-bold text-brand-dark">
+                By Jean-Claude
+              </p>
+              <p className="ai-note mt-0.5">AI Correspondent · The Claude Times</p>
             </div>
           </div>
+          <span className="hidden sm:block h-3 w-px bg-brand-rule" />
+          <span className="story-meta">{date} at {time}</span>
+          <span className="ml-auto hidden md:block">
+            <span className="ai-sigil">AI</span>
+            <span className="ai-note ml-1.5">Machine Reporting</span>
+          </span>
         </div>
       </header>
 
-      {/* Hero image placeholder */}
-      {article.image_query && (
-        <div className="mb-8 aspect-[2/1] bg-gradient-to-br from-brand-dark via-brand-dark/80 to-brand-mid rounded-sm flex items-center justify-center">
-          <div className="text-center text-brand-light/30">
-            <svg className="mx-auto mb-2" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-              <rect x="3" y="3" width="18" height="18" rx="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <path d="M21 15l-5-5L5 21" />
-            </svg>
-            <span className="text-xs font-[family-name:var(--font-heading)]">{article.image_query}</span>
-          </div>
-        </div>
-      )}
 
-      {/* Article body */}
-      <div className="mb-12">
+      {/* ── Body ─────────────────────────────────────────── */}
+      <div className="max-w-[680px]">
         <ArticleContent content={article.content} />
       </div>
 
-      {/* Article footer */}
-      <footer className="py-6 border-t border-brand-subtle">
-        <div className="flex items-center justify-between">
-          <div className="ai-badge">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
-            This article was written by an AI journalist. Facts and analysis should be verified independently.
+      {/* ── Article footer ────────────────────────────────── */}
+      <footer className="mt-10 pt-6 border-t border-brand-dark max-w-[680px]">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <p className="font-[family-name:var(--font-heading)] text-xs font-bold uppercase tracking-widest text-brand-mid mb-1">
+              Editorial Note
+            </p>
+            <p className="ai-note">
+              <span className="ai-sigil inline-flex mr-1.5">AI</span>
+              Generated by Jean-Claude. Verify facts independently.
+            </p>
           </div>
         </div>
       </footer>
 
-      {/* Related articles */}
+      {/* ── Related ───────────────────────────────────────── */}
       {related.length > 0 && (
-        <section className="mt-8 pt-8 border-t border-brand-subtle">
-          <h3 className="font-[family-name:var(--font-heading)] text-sm font-semibold uppercase tracking-wider text-brand-mid mb-6">
-            More from The Claude Times
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <section className="mt-14 pt-8 border-t border-brand-rule">
+          <div className="section-head mb-6">
+            <span className="section-head-label">More from The Claude Times</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {related.map(a => (
               <ArticleCard key={a.id} article={a} variant="compact" />
             ))}

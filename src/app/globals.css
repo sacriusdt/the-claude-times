@@ -1,457 +1,621 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-dark: #141413;
-  --color-brand-light: #faf9f5;
-  --color-brand-mid: #b0aea5;
-  --color-brand-subtle: #e8e6dc;
-  --color-brand-orange: #d97757;
-  --color-brand-blue: #6a9bcc;
-  --color-brand-green: #788c5d;
+  /* ── Palette ──────────────────────────────────────────────
+     Near-monochrome. Orange reserved for "Claude" only.
+   ───────────────────────────────────────────────────────── */
+  --color-brand-dark:    #141413;
+  --color-brand-light:   #faf9f5;
+  --color-brand-mid:     #767570;
+  --color-brand-subtle:  #d4d2c8;
+  --color-brand-rule:    #c8c6bc;
+  --color-brand-orange:  #c96a3e; /* muted terracotta — used on "Claude" only */
 
-  --font-heading: 'Poppins', Arial, sans-serif;
-  --font-body: 'Lora', Georgia, serif;
+  --font-heading: "Playfair Display", "Georgia", serif;
+  --font-body:    "Lora", "Georgia", serif;
+  --font-label:   "Playfair Display", "Georgia", serif;
 }
 
-/* ─── Base ─────────────────────────────────────────────── */
+/* ─── Reset ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+::selection {
+  background: rgba(201, 106, 62, 0.18);
+  color: var(--color-brand-dark);
+}
+
 body {
   font-family: var(--font-body);
   color: var(--color-brand-dark);
   background-color: var(--color-brand-light);
+  -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4, h5, h6, nav, button, label, .font-heading {
-  font-family: var(--font-heading);
-}
+/* Avoid FOUC on nav overflow */
+.no-scrollbar { scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
 
-/* ─── Masthead ──────────────────────────────────────────── */
-.masthead-rule {
-  height: 3px;
-  background: var(--color-brand-dark);
+/* ─── NYT Double-Rule ────────────────────────────────────
+   3 px solid + 0.5 px rule at ~4 px gap. The signature.
+ ─────────────────────────────────────────────────────── */
+.nyt-rule {
+  border-top: 3px solid var(--color-brand-dark);
+  padding-top: 5px;
   position: relative;
 }
-.masthead-rule::before {
-  content: '';
+.nyt-rule::before {
+  content: "";
   position: absolute;
-  top: 5px;
-  left: 0;
-  right: 0;
-  height: 1px;
+  top: 3px; left: 0; right: 0;
+  height: 0.5px;
   background: var(--color-brand-dark);
 }
 
+/* ─── Section Header ─────────────────────────────────────
+   Double-rule + small-caps section label below.
+ ─────────────────────────────────────────────────────── */
+.section-head {
+  border-top: 3px solid var(--color-brand-dark);
+  padding-top: 5px;
+  position: relative;
+  margin-bottom: 1rem;
+}
+.section-head::before {
+  content: "";
+  position: absolute;
+  top: 3px; left: 0; right: 0;
+  height: 0.5px;
+  background: var(--color-brand-dark);
+}
+.section-head-label {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-brand-dark);
+  margin-top: 0.55rem;
+}
+
+/* ─── Masthead ───────────────────────────────────────────
+   Playfair Display at 900 weight. Authoritative.
+ ─────────────────────────────────────────────────────── */
 .masthead-title {
   font-family: var(--font-heading);
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-weight: 900;
+  letter-spacing: -0.02em;
   line-height: 1;
 }
 
+/* "Claude" is the only orange on the entire page. */
 .masthead-claude {
   color: var(--color-brand-orange);
-  position: relative;
+  font-style: italic;
 }
 
-/* ─── AI Credential ─────────────────────────────────────── */
-.ai-credential {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
+/* ─── Navigation ─────────────────────────────────────────
+   Dark bar. Very small serif uppercase. NYT 1960s feel.
+ ─────────────────────────────────────────────────────── */
+.nav-bar {
+  background: var(--color-brand-dark);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.nav-link {
+  display: inline-block;
+  padding: 0.65rem 1rem;
   font-family: var(--font-heading);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
   text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: rgba(250, 249, 245, 0.5);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 100ms ease;
+}
+.nav-link:hover      { color: rgba(250, 249, 245, 0.9); }
+.nav-link-active     { color: var(--color-brand-light); border-bottom-color: var(--color-brand-orange); }
+
+/* ─── Kicker / Category Tag ──────────────────────────────
+   All categories the same: dark label. No colour coding.
+ ─────────────────────────────────────────────────────── */
+.kicker {
+  display: inline-block;
+  font-family: var(--font-heading);
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-brand-mid);
 }
 
-.ai-credential-mark {
+/* ─── AI Notation ────────────────────────────────────────
+   Not a badge. Just a small typographic footnote.
+ ─────────────────────────────────────────────────────── */
+.ai-note {
+  font-family: var(--font-heading);
+  font-size: 0.6rem;
+  font-weight: 400;
+  font-style: italic;
+  letter-spacing: 0.06em;
+  color: var(--color-brand-mid);
+}
+
+.ai-sigil {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  background: var(--color-brand-orange);
-  color: white;
-  font-size: 0.55rem;
-  font-weight: 800;
+  width: 14px;
+  height: 14px;
+  background: var(--color-brand-dark);
+  color: var(--color-brand-light);
+  font-family: var(--font-heading);
+  font-size: 0.48rem;
+  font-weight: 900;
   letter-spacing: 0;
   flex-shrink: 0;
 }
 
-/* ─── Category pill ─────────────────────────────────────── */
-.category-pill {
-  display: inline-block;
+/* ─── Story Metadata Row ─────────────────────────────────*/
+.story-meta {
   font-family: var(--font-heading);
-  font-size: 0.6rem;
+  font-size: 0.62rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--color-brand-mid);
+}
+
+/* ─── Article Cards ──────────────────────────────────────
+   No backgrounds. Separated by 0.5px rules + whitespace.
+ ─────────────────────────────────────────────────────── */
+.story-block {
+  padding-bottom: 1.1rem;
+  border-bottom: 0.5px solid var(--color-brand-rule);
+}
+
+.story-title-xl {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--color-brand-dark);
+  transition: color 100ms;
+}
+
+.story-title-lg {
+  font-family: var(--font-heading);
+  font-size: clamp(1.35rem, 2vw, 1.75rem);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  padding: 0.25rem 0.6rem;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  color: var(--color-brand-dark);
+  transition: color 100ms;
 }
 
-/* ─── Section headers ───────────────────────────────────── */
-.section-rule-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+.story-title-md {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-brand-dark);
+  transition: color 100ms;
 }
 
-.section-rule-header::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--color-brand-subtle);
+.story-title-sm {
+  font-family: var(--font-heading);
+  font-size: 0.93rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-brand-dark);
+  transition: color 100ms;
 }
 
-/* ─── Featured hero card ────────────────────────────────── */
-.hero-card {
+.story-deck {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.65;
+  color: rgba(20, 20, 19, 0.65);
+}
+
+.story-card:hover .story-title-xl,
+.story-card:hover .story-title-lg,
+.story-card:hover .story-title-md,
+.story-card:hover .story-title-sm {
+  color: var(--color-brand-mid);
+}
+
+/* ─── Featured Hero ──────────────────────────────────────
+   Dark block. Print-weight headline.
+ ─────────────────────────────────────────────────────── */
+.hero-block {
   background: var(--color-brand-dark);
   color: var(--color-brand-light);
-  position: relative;
-  overflow: hidden;
+  border-left: 3px solid var(--color-brand-orange);
 }
 
-.hero-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0;
-  width: 4px;
-  height: 100%;
-  background: var(--color-brand-orange);
+.hero-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 900;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  color: var(--color-brand-light);
+  transition: color 100ms;
 }
+.story-card:hover .hero-title { color: rgba(250, 249, 245, 0.75); }
 
-.hero-card:hover .hero-card-title {
-  color: var(--color-brand-orange);
-}
-
-/* ─── Article cards ─────────────────────────────────────── */
-.article-card {
-  transition: transform 0.12s ease;
-}
-
-.article-card:hover {
-  transform: translateY(-1px);
-}
-
-.card-stripe-international { border-top: 3px solid var(--color-brand-blue); }
-.card-stripe-politics      { border-top: 3px solid var(--color-brand-orange); }
-.card-stripe-geopolitics   { border-top: 3px solid var(--color-brand-dark); }
-.card-stripe-business      { border-top: 3px solid var(--color-brand-green); }
-
-.card-left-international { border-left: 3px solid var(--color-brand-blue); }
-.card-left-politics      { border-left: 3px solid var(--color-brand-orange); }
-.card-left-geopolitics   { border-left: 3px solid var(--color-brand-dark); }
-.card-left-business      { border-left: 3px solid var(--color-brand-green); }
-
-/* ─── Article body ──────────────────────────────────────── */
+/* ─── Article Body ───────────────────────────────────────
+   680 px reading column. Classic print sizing.
+ ─────────────────────────────────────────────────────── */
 .article-content p {
+  font-family: var(--font-body);
   font-size: 1.1rem;
   line-height: 1.9;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.4rem;
+  color: rgba(20, 20, 19, 0.88);
 }
 
 .article-content h2 {
   font-family: var(--font-heading);
-  font-size: 1.6rem;
+  font-size: clamp(1.3rem, 2.5vw, 1.65rem);
   font-weight: 700;
+  letter-spacing: -0.01em;
   margin-top: 3rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 2px solid var(--color-brand-dark);
+  margin-bottom: 0.85rem;
+  padding-top: 1rem;
+  border-top: 3px solid var(--color-brand-dark);
+  position: relative;
+}
+.article-content h2::before {
+  content: "";
+  position: absolute;
+  top: 3px; left: 0; right: 0;
+  height: 0.5px;
+  background: var(--color-brand-dark);
 }
 
 .article-content h3 {
   font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.15rem;
+  font-weight: 700;
   margin-top: 2rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.6rem;
 }
 
 .article-content a {
-  color: var(--color-brand-orange);
+  color: inherit;
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--color-brand-rule);
+}
+.article-content a:hover {
+  text-decoration-color: var(--color-brand-dark);
 }
 
-/* ─── Pull quote ────────────────────────────────────────── */
+.article-content ul, .article-content ol {
+  margin: 1rem 0 1.4rem;
+  padding-left: 1.5rem;
+}
+.article-content li {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  margin-bottom: 0.4rem;
+}
+
+/* ─── Pull Quote ─────────────────────────────────────────
+   Left rule in dark. Serif italic headline.
+ ─────────────────────────────────────────────────────── */
 .pull-quote {
-  position: relative;
   margin: 2.5rem 0;
-  padding: 1.5rem 2rem 1.5rem 3rem;
-  border-left: 4px solid var(--color-brand-orange);
-  background: var(--color-brand-subtle);
+  padding: 1rem 1.5rem 1rem 2.5rem;
+  border-left: 3px solid var(--color-brand-dark);
+  position: relative;
 }
-
 .pull-quote::before {
-  content: '\201C';
+  content: "\201C";
   position: absolute;
-  left: 0.5rem;
-  top: -0.25rem;
+  left: 0.4rem;
+  top: -0.1rem;
   font-family: var(--font-heading);
-  font-size: 4rem;
+  font-size: 3.5rem;
   line-height: 1;
-  color: var(--color-brand-orange);
-  opacity: 0.6;
+  color: var(--color-brand-dark);
+  opacity: 0.18;
 }
-
 .pull-quote-text {
   font-family: var(--font-heading);
   font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.5;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.45;
   color: var(--color-brand-dark);
 }
-
 .pull-quote-attribution {
-  margin-top: 0.75rem;
+  margin-top: 0.65rem;
   font-family: var(--font-heading);
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.62rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
   color: var(--color-brand-mid);
 }
 
-/* ─── Key figure ────────────────────────────────────────── */
+/* ─── Callout Blocks ─────────────────────────────────────
+   No background colour. Pure left-rule + text.
+ ─────────────────────────────────────────────────────── */
+.callout {
+  padding: 1rem 1.4rem 1rem 1.25rem;
+  margin: 1.75rem 0;
+}
+.callout-label {
+  font-family: var(--font-heading);
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+/* All variants: mono rule, differentiated only by label text */
+.callout-analysis  { border-left: 3px solid var(--color-brand-dark);   background: rgba(20,20,19,0.03); }
+.callout-opinion   { border-left: 3px solid var(--color-brand-orange);  background: rgba(201,106,62,0.04); }
+.callout-context   { border-left: 3px solid var(--color-brand-mid);    background: rgba(20,20,19,0.02); }
+
+.callout-analysis .callout-label  { color: var(--color-brand-dark); }
+.callout-opinion  .callout-label  { color: var(--color-brand-orange); }
+.callout-context  .callout-label  { color: var(--color-brand-mid); }
+
+/* ─── Key Figure ─────────────────────────────────────────
+   Dark solid block. The value dominates.
+ ─────────────────────────────────────────────────────── */
 .key-figure {
   background: var(--color-brand-dark);
   color: var(--color-brand-light);
   padding: 1.75rem 2rem;
-  position: relative;
-  overflow: hidden;
+  border-left: 3px solid var(--color-brand-orange);
 }
-
-.key-figure::after {
-  content: '';
-  position: absolute;
-  bottom: 0; right: 0;
-  width: 80px; height: 80px;
-  background: var(--color-brand-orange);
-  opacity: 0.12;
-  border-radius: 50%;
-  transform: translate(20px, 20px);
-}
-
 .key-figure-value {
   font-family: var(--font-heading);
-  font-size: 3rem;
-  font-weight: 800;
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+  font-weight: 900;
+  font-style: italic;
   line-height: 1;
-  color: var(--color-brand-orange);
+  color: var(--color-brand-light);
 }
-
 .key-figure-label {
   font-family: var(--font-heading);
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-brand-mid);
+  letter-spacing: 0.14em;
+  color: rgba(250, 249, 245, 0.45);
   margin-top: 0.5rem;
 }
-
 .key-figure-context {
+  font-family: var(--font-body);
   font-size: 0.9rem;
-  color: var(--color-brand-light);
-  opacity: 0.75;
+  font-style: italic;
+  color: rgba(250, 249, 245, 0.82);
   margin-top: 0.5rem;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
-/* ─── Callout blocks ────────────────────────────────────── */
-.callout {
-  padding: 1.25rem 1.5rem;
-  margin: 2rem 0;
-  position: relative;
-}
+/* Timeline — layout handled inline in ArticleContent.tsx */
 
-.callout-label {
-  font-family: var(--font-heading);
-  font-size: 0.6rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.15em;
-  margin-bottom: 0.6rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.callout-analysis {
-  border-left: 4px solid var(--color-brand-blue);
-  background: linear-gradient(135deg, rgba(106,155,204,0.08), transparent);
-}
-.callout-analysis .callout-label { color: var(--color-brand-blue); }
-
-.callout-opinion {
-  border-left: 4px solid var(--color-brand-orange);
-  background: linear-gradient(135deg, rgba(217,119,87,0.08), transparent);
-}
-.callout-opinion .callout-label { color: var(--color-brand-orange); }
-
-.callout-context {
-  border-left: 4px solid var(--color-brand-green);
-  background: linear-gradient(135deg, rgba(120,140,93,0.08), transparent);
-}
-.callout-context .callout-label { color: var(--color-brand-green); }
-
-/* ─── Timeline ──────────────────────────────────────────── */
-.timeline-track {
-  position: absolute;
-  left: 10px;
-  top: 12px;
-  bottom: 0;
-  width: 2px;
-  background: linear-gradient(to bottom, var(--color-brand-orange), var(--color-brand-subtle));
-}
-
-.timeline-dot {
-  position: absolute;
-  left: 0;
-  top: 6px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--color-brand-dark);
-  border: 3px solid var(--color-brand-orange);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.timeline-dot::after {
-  content: '';
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-brand-orange);
-}
-
-/* ─── Table ─────────────────────────────────────────────── */
-.editorial-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.95rem;
-}
-
+/* ─── Editorial Table ────────────────────────────────────*/
+.editorial-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 .editorial-table thead th {
   font-family: var(--font-heading);
-  font-size: 0.65rem;
+  font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 0.75rem 1rem;
+  letter-spacing: 0.12em;
+  padding: 0.7rem 1rem;
   text-align: left;
   background: var(--color-brand-dark);
   color: var(--color-brand-light);
   white-space: nowrap;
 }
-
-.editorial-table thead th:first-child {
-  padding-left: 1.25rem;
-}
-
+.editorial-table thead th:first-child { padding-left: 1.25rem; }
 .editorial-table tbody td {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--color-brand-subtle);
+  padding: 0.7rem 1rem;
+  border-bottom: 0.5px solid var(--color-brand-rule);
   vertical-align: top;
 }
+.editorial-table tbody td:first-child { padding-left: 1.25rem; font-weight: 600; }
+.editorial-table tbody tr:hover td { background: rgba(20,20,19,0.025); }
 
-.editorial-table tbody td:first-child {
-  padding-left: 1.25rem;
-  font-weight: 600;
-}
-
-.editorial-table tbody tr:hover td {
-  background: rgba(217, 119, 87, 0.04);
-}
-
-/* ─── Ornamental separator ──────────────────────────────── */
+/* ─── Ornamental Separator ───────────────────────────────*/
 .ornament {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.75rem;
   color: var(--color-brand-mid);
   margin: 2.5rem 0;
+  font-family: var(--font-heading);
+  font-size: 0.8rem;
+  font-style: italic;
 }
-
-.ornament::before,
-.ornament::after {
-  content: '';
+.ornament::before, .ornament::after {
+  content: "";
   flex: 1;
-  height: 1px;
-  background: var(--color-brand-subtle);
+  height: 0.5px;
+  background: var(--color-brand-rule);
 }
 
-/* ─── Byline ────────────────────────────────────────────── */
+/* ─── Byline ─────────────────────────────────────────────*/
 .byline-avatar {
-  width: 44px;
-  height: 44px;
+  width: 38px; height: 38px;
   border-radius: 50%;
   background: var(--color-brand-dark);
-  border: 2px solid var(--color-brand-orange);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 1.5px solid var(--color-brand-dark);
+  display: flex; align-items: center; justify-content: center;
   font-family: var(--font-heading);
-  font-weight: 800;
-  font-size: 0.8rem;
-  color: var(--color-brand-orange);
-  letter-spacing: 0.05em;
+  font-weight: 900;
+  font-style: italic;
+  font-size: 0.75rem;
+  color: var(--color-brand-light);
   flex-shrink: 0;
 }
 
-/* ─── Chat ──────────────────────────────────────────────── */
-.chat-container {
-  height: calc(100vh - 220px);
-  min-height: 500px;
-  display: flex;
-  flex-direction: column;
-}
 
+/* ─── Chat ───────────────────────────────────────────────*/
+.chat-container {
+  height: min(70vh, 780px);
+  min-height: 520px;
+  display: flex; flex-direction: column;
+  border: 0.5px solid var(--color-brand-rule);
+  border-top: 3px solid var(--color-brand-dark);
+  background: var(--color-brand-light);
+}
 .chat-messages {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
+  padding: 1.25rem;
 }
-
 .chat-bubble-user {
   background: var(--color-brand-dark);
   color: var(--color-brand-light);
-  border-radius: 12px 12px 2px 12px;
+  font-family: var(--font-body);
   font-size: 0.9rem;
-  line-height: 1.6;
+  line-height: 1.65;
 }
-
 .chat-bubble-assistant {
-  background: var(--color-brand-subtle);
+  background: rgba(20,20,19,0.04);
   color: var(--color-brand-dark);
-  border-radius: 12px 12px 12px 2px;
+  border: 0.5px solid var(--color-brand-rule);
+  font-family: var(--font-body);
   font-size: 0.9rem;
-  line-height: 1.6;
+  line-height: 1.65;
 }
 
-/* ─── Ticker ────────────────────────────────────────────── */
+/* ─── Ticker ─────────────────────────────────────────────*/
 @keyframes ticker-scroll {
   from { transform: translateX(0); }
   to   { transform: translateX(-50%); }
 }
-
 .ticker-track {
   display: flex;
   white-space: nowrap;
-  animation: ticker-scroll 40s linear infinite;
+  animation: ticker-scroll 55s linear infinite;
 }
+.ticker-track:hover { animation-play-state: paused; }
 
-.ticker-track:hover {
-  animation-play-state: paused;
-}
-
-/* ─── Scrollbar ─────────────────────────────────────────── */
+/* ─── Scrollbar ──────────────────────────────────────────*/
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--color-brand-subtle); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--color-brand-mid); }
+::-webkit-scrollbar-thumb { background: var(--color-brand-rule); }
+
+/* ─── World Map ───────────────────────────────────────────
+   Full-height Leaflet map. CartoDB Positron tiles.
+ ─────────────────────────────────────────────────────────*/
+.map-container {
+  flex: 1;
+  min-height: 500px;
+  width: 100%;
+}
+
+/* Custom pin dot */
+.map-pin { background: transparent; border: none; }
+.map-pin-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-brand-orange);
+  border: 2px solid var(--color-brand-dark);
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.6);
+  transition: transform 0.15s ease;
+}
+.map-pin:hover .map-pin-dot,
+.leaflet-marker-icon:hover .map-pin-dot { transform: scale(1.35); }
+
+/* Popup wrapper — reset Leaflet defaults */
+.map-popup-wrapper .leaflet-popup-content-wrapper {
+  background: var(--color-brand-light);
+  border: 1px solid var(--color-brand-rule);
+  border-radius: 1px;
+  box-shadow: none;
+  padding: 0;
+}
+.map-popup-wrapper .leaflet-popup-tip {
+  background: var(--color-brand-rule);
+}
+.map-popup-wrapper .leaflet-popup-content {
+  margin: 0;
+  font-family: var(--font-body);
+}
+
+/* Popup inner card */
+.map-popup {
+  padding: 14px 16px 12px;
+  max-width: 280px;
+}
+.map-popup-kicker {
+  font-family: var(--font-label);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--color-brand-mid);
+  margin-bottom: 5px;
+}
+.map-popup-title {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--color-brand-dark);
+  text-decoration: none;
+  margin-bottom: 6px;
+}
+.map-popup-title:hover { text-decoration: underline; }
+.map-popup-summary {
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: rgba(20,20,19,0.7);
+  margin: 0 0 8px;
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.map-popup-date {
+  font-family: var(--font-label);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-brand-mid);
+  margin-bottom: 8px;
+}
+.map-popup-link {
+  font-family: var(--font-label);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-brand-dark);
+  text-decoration: none;
+  border-bottom: 1px solid var(--color-brand-dark);
+  padding-bottom: 1px;
+}
+.map-popup-link:hover { color: var(--color-brand-orange); border-color: var(--color-brand-orange); }
+
+/* ─── Responsive ─────────────────────────────────────────*/
+@media (max-width: 768px) {
+  .article-content p { font-size: 1rem; line-height: 1.8; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

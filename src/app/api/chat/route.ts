@@ -1,7 +1,8 @@
 import { streamComplete } from '@/lib/providers';
 import { writeArticleOnDemand } from '@/lib/agent';
-import { insertChatMessage, getChatHistory } from '@/lib/db';
+import { insertChatMessage, getChatHistory, getLatestArticles, deleteArticle } from '@/lib/db';
 import { JEAN_CLAUDE_SYSTEM, CHAT_SYSTEM } from '@/lib/personality';
+import { complete } from '@/lib/providers';
 
 export const maxDuration = 300;
 
@@ -23,8 +24,12 @@ export async function POST(req: Request) {
   // Save user message
   insertChatMessage('user', message);
 
-  // Check if this is an article request
-  const isArticleRequest = /write|article|cover|report|piece|story/i.test(message) &&
+  // Check if this is a delete request (checked first — takes priority)
+  const isDeleteRequest = /\b(delete|remove|supprime|supprimer|efface|effacer|retire|retirer|pull|kill)\b/i.test(message);
+
+  // Check if this is an article request (only if not a delete request)
+  const isArticleRequest = !isDeleteRequest &&
+    /write|article|cover|report|piece|story/i.test(message) &&
     message.length > 10;
 
   // Build conversation history
@@ -44,7 +49,60 @@ export async function POST(req: Request) {
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        if (isArticleRequest) {
+        if (isDeleteRequest) {
+          const articles = getLatestArticles(50);
+
+          if (articles.length === 0) {
+            const reply = "There's nothing to delete — the archive is empty.";
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: reply })}\n\n`));
+            insertChatMessage('assistant', reply);
+          } else {
+            // Ask Jean-Claude to identify which article to delete
+            const articleList = articles.map(a => `- slug: "${a.slug}" | title: "${a.title}" | date: ${a.published_at.slice(0, 10)}`).join('\n');
+            const identifyResponse = await complete({
+              messages: [
+                { role: 'system', content: 'You are helping identify which article to delete. Respond ONLY with a JSON object: {"slug": "...", "title": "...", "found": true} if you found a match, or {"found": false} if no match. No explanation.' },
+                { role: 'user', content: `Editor request: "${message}"\n\nPublished articles:\n${articleList}` },
+              ],
+              maxTokens: 100,
+              temperature: 0,
+            });
+
+            let identified: { slug?: string; title?: string; found: boolean } = { found: false };
+            try {
+              const jsonMatch = identifyResponse.match(/\{[\s\S]*\}/);
+              if (jsonMatch) identified = JSON.parse(jsonMatch[0]);
+            } catch { /* ignore */ }
+
+            if (!identified.found || !identified.slug) {
+              const reply = "I couldn't identify which article you want to pull. Could you be more specific — give me a title or part of it?";
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: reply })}\n\n`));
+              insertChatMessage('assistant', reply);
+            } else {
+              deleteArticle(identified.slug);
+
+              // Jean-Claude confirms conversationally
+              const confirmStream = streamComplete({
+                messages: [
+                  { role: 'system', content: JEAN_CLAUDE_SYSTEM + '\n\n' + CHAT_SYSTEM },
+                  { role: 'user', content: `The editor asked you to delete the article "${identified.title}". It's done — confirm this briefly and naturally (1-2 sentences max).` },
+                ],
+                maxTokens: 100,
+                stream: true,
+              });
+
+              let fullReply = '';
+              for await (const chunk of confirmStream) {
+                fullReply += chunk;
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
+              }
+
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ deleted: { slug: identified.slug, title: identified.title } })}\n\n`));
+              insertChatMessage('assistant', fullReply + `\n\n[Article deleted: "${identified.title}"]`);
+            }
+          }
+
+        } else if (isArticleRequest) {
           // First, chat response about the article
           const chatMessages = [
             ...messages,
@@ -74,7 +132,7 @@ export async function POST(req: Request) {
           );
 
           // Extract the topic from the message
-          const topicResponse = await (await import('@/lib/providers')).complete({
+          const topicResponse = await complete({
             messages: [
               {
                 role: 'system',
