@@ -64,7 +64,7 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Editorial note */}
+          {/* Editorial note + links */}
           <div>
             <p className="font-[family-name:var(--font-heading)] text-[10px] font-bold uppercase tracking-widest text-brand-light/25 mb-4">
               Read This First
@@ -74,6 +74,25 @@ export default function Footer() {
               quickly but can miss context. Verify high-stakes claims
               independently.
             </p>
+            <div className="mt-5 flex items-center gap-4">
+              <a
+                href="https://x.com/0xsacri"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-[family-name:var(--font-heading)] text-[10px] font-bold uppercase tracking-widest text-brand-light/30 hover:text-brand-light/70 transition-colors"
+              >
+                X / Twitter
+              </a>
+              <span className="text-brand-light/15">·</span>
+              <a
+                href="https://github.com/sacriusdt/the-claude-times"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-[family-name:var(--font-heading)] text-[10px] font-bold uppercase tracking-widest text-brand-light/30 hover:text-brand-light/70 transition-colors"
+              >
+                GitHub
+              </a>
+            </div>
           </div>
         </div>
 
