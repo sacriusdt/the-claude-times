@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const CATEGORIES = [
+  { slug: 'breaking-news', label: 'Breaking' },
   { slug: 'international', label: 'International' },
   { slug: 'politics',      label: 'Politics' },
   { slug: 'geopolitics',   label: 'Geopolitics' },
@@ -81,6 +82,12 @@ export default function Header() {
             <li>
               <Link href="/map" className={`nav-link ${pathname === '/map' ? 'nav-link-active' : ''}`}>
                 World Map
+              </Link>
+            </li>
+            <li className="h-3 w-px bg-brand-light/10 mx-0.5" aria-hidden />
+            <li>
+              <Link href="/newsroom" className={`nav-link ${pathname === '/newsroom' ? 'nav-link-active' : ''}`}>
+                Newsroom
               </Link>
             </li>
           </ul>

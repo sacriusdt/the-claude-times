@@ -17,10 +17,10 @@ export default function ChatPage() {
           className="font-[family-name:var(--font-heading)] font-black tracking-tight mb-2"
           style={{ fontSize: 'clamp(1.75rem, 4vw, 2.75rem)' }}
         >
-          Direct line to Jean-Claude
+          The Newsroom
         </h1>
         <p className="font-[family-name:var(--font-body)] italic story-deck max-w-xl">
-          Assign stories, request rewrites, and steer editorial direction in real time.
+          Your direct line to Jean-Claude and Sophia. Assign stories, manage the archive, and steer editorial direction.
         </p>
       </header>
       <ChatInterface />

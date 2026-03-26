@@ -13,6 +13,8 @@ interface CompletionOptions {
   maxTokens?: number;
   temperature?: number;
   stream?: false;
+  modelOverride?: string;
+  providerOverride?: Provider;
 }
 
 interface StreamOptions {
@@ -20,6 +22,8 @@ interface StreamOptions {
   maxTokens?: number;
   temperature?: number;
   stream: true;
+  modelOverride?: string;
+  providerOverride?: Provider;
 }
 
 const DEFAULT_MODELS: Record<Provider, string> = {
@@ -32,8 +36,9 @@ function getProvider(): Provider {
   return (process.env.AI_PROVIDER as Provider) || 'anthropic';
 }
 
-function getModel(): string {
-  return process.env.AI_MODEL || DEFAULT_MODELS[getProvider()];
+function getModel(providerOverride?: Provider, modelOverride?: string): string {
+  if (modelOverride) return modelOverride;
+  return process.env.AI_MODEL || DEFAULT_MODELS[providerOverride || getProvider()];
 }
 
 // --- Anthropic ---
@@ -42,7 +47,7 @@ function getAnthropicClient() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 
-async function anthropicComplete(opts: CompletionOptions): Promise<string> {
+async function anthropicComplete(opts: CompletionOptions, model: string): Promise<string> {
   const client = getAnthropicClient();
   const system = opts.messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
   const messages = opts.messages
@@ -50,7 +55,7 @@ async function anthropicComplete(opts: CompletionOptions): Promise<string> {
     .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
   const response = await client.messages.create({
-    model: getModel(),
+    model,
     max_tokens: opts.maxTokens || 4096,
     temperature: opts.temperature ?? 0.7,
     system: system || undefined,
@@ -63,7 +68,7 @@ async function anthropicComplete(opts: CompletionOptions): Promise<string> {
     .join('');
 }
 
-async function* anthropicStream(opts: StreamOptions): AsyncGenerator<string> {
+async function* anthropicStream(opts: StreamOptions, model: string): AsyncGenerator<string> {
   const client = getAnthropicClient();
   const system = opts.messages.filter(m => m.role === 'system').map(m => m.content).join('\n\n');
   const messages = opts.messages
@@ -71,7 +76,7 @@ async function* anthropicStream(opts: StreamOptions): AsyncGenerator<string> {
     .map(m => ({ role: m.role as 'user' | 'assistant', content: m.content }));
 
   const stream = client.messages.stream({
-    model: getModel(),
+    model,
     max_tokens: opts.maxTokens || 4096,
     temperature: opts.temperature ?? 0.7,
     system: system || undefined,
@@ -87,8 +92,7 @@ async function* anthropicStream(opts: StreamOptions): AsyncGenerator<string> {
 
 // --- OpenAI / OpenRouter ---
 
-function getOpenAIClient() {
-  const provider = getProvider();
+function getOpenAIClient(provider: Provider) {
   if (provider === 'openrouter') {
     return new OpenAI({
       apiKey: process.env.OPENROUTER_API_KEY,
@@ -98,10 +102,10 @@ function getOpenAIClient() {
   return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
-async function openaiComplete(opts: CompletionOptions): Promise<string> {
-  const client = getOpenAIClient();
+async function openaiComplete(opts: CompletionOptions, model: string, provider: Provider): Promise<string> {
+  const client = getOpenAIClient(provider);
   const response = await client.chat.completions.create({
-    model: getModel(),
+    model,
     max_tokens: opts.maxTokens || 4096,
     temperature: opts.temperature ?? 0.7,
     messages: opts.messages.map(m => ({ role: m.role, content: m.content })),
@@ -109,10 +113,10 @@ async function openaiComplete(opts: CompletionOptions): Promise<string> {
   return response.choices[0]?.message?.content || '';
 }
 
-async function* openaiStream(opts: StreamOptions): AsyncGenerator<string> {
-  const client = getOpenAIClient();
+async function* openaiStream(opts: StreamOptions, model: string, provider: Provider): AsyncGenerator<string> {
+  const client = getOpenAIClient(provider);
   const stream = await client.chat.completions.create({
-    model: getModel(),
+    model,
     max_tokens: opts.maxTokens || 4096,
     temperature: opts.temperature ?? 0.7,
     messages: opts.messages.map(m => ({ role: m.role, content: m.content })),
@@ -128,13 +132,15 @@ async function* openaiStream(opts: StreamOptions): AsyncGenerator<string> {
 // --- Public API ---
 
 export async function complete(opts: CompletionOptions): Promise<string> {
-  const provider = getProvider();
-  if (provider === 'anthropic') return anthropicComplete(opts);
-  return openaiComplete(opts);
+  const provider = opts.providerOverride || getProvider();
+  const model = getModel(provider, opts.modelOverride);
+  if (provider === 'anthropic') return anthropicComplete(opts, model);
+  return openaiComplete(opts, model, provider);
 }
 
 export async function* streamComplete(opts: StreamOptions): AsyncGenerator<string> {
-  const provider = getProvider();
-  if (provider === 'anthropic') yield* anthropicStream(opts);
-  else yield* openaiStream(opts);
+  const provider = opts.providerOverride || getProvider();
+  const model = getModel(provider, opts.modelOverride);
+  if (provider === 'anthropic') yield* anthropicStream(opts, model);
+  else yield* openaiStream(opts, model, provider);
 }

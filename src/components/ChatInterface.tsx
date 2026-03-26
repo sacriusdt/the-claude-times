@@ -2,51 +2,106 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
+type Journalist = 'jean-claude' | 'sophia';
+
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
+const JOURNALISTS = {
+  'jean-claude': {
+    name: 'Jean-Claude',
+    initials: 'JC',
+    role: 'Senior Correspondent',
+    placeholder: 'Assign a story, request a rewrite, steer editorial direction…',
+    greeting: { title: 'Ready for assignment.', sub: "Drop a topic and I'll draft an article with a clear angle and publication-ready structure." },
+  },
+  sophia: {
+    name: 'Sophia',
+    initials: 'S',
+    role: 'Breaking News Desk',
+    placeholder: "What's the story? I'll get on it fast…",
+    greeting: { title: "What's breaking?", sub: "Give me a topic or a link and I'll turn it into something worth reading. Fast." },
+  },
+};
+
 export default function ChatInterface() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [journalist, setJournalist] = useState<Journalist>('jean-claude');
+  const [messagesByJournalist, setMessagesByJournalist] = useState<Record<Journalist, Message[]>>({
+    'jean-claude': [],
+    sophia: [],
+  });
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const messages = messagesByJournalist[journalist];
+  const j = JOURNALISTS[journalist];
+
+  const setMessages = (updater: (prev: Message[]) => Message[]) => {
+    setMessagesByJournalist(prev => ({
+      ...prev,
+      [journalist]: updater(prev[journalist]),
+    }));
+  };
+
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
+  useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Verify password via API
+  const loadHistory = async (j: Journalist, pwd: string) => {
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, message: '__auth_check__' }),
+        body: JSON.stringify({ password: pwd, message: '__auth_check__', journalist: j }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.history) {
+          setMessagesByJournalist(prev => ({ ...prev, [j]: data.history }));
+        }
+      }
+    } catch { /* ignore */ }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password, message: '__auth_check__', journalist: 'jean-claude' }),
       });
       if (res.ok) {
         setAuthenticated(true);
         setAuthError('');
-        // Load chat history
         const data = await res.json();
         if (data.history) {
-          setMessages(data.history);
+          setMessagesByJournalist(prev => ({ ...prev, 'jean-claude': data.history }));
         }
+        // Pre-load Sophia's history too
+        loadHistory('sophia', password);
       } else {
         setAuthError('Invalid password');
       }
     } catch {
       setAuthError('Connection error');
+    }
+  };
+
+  const handleJournalistSwitch = (j: Journalist) => {
+    setJournalist(j);
+    // Load history for this journalist if not yet loaded
+    if (messagesByJournalist[j].length === 0) {
+      loadHistory(j, password);
     }
   };
 
@@ -62,12 +117,11 @@ export default function ChatInterface() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, message: userMessage }),
+        body: JSON.stringify({ password, message: userMessage, journalist }),
       });
 
       if (!res.ok) throw new Error('Chat failed');
 
-      // Stream the response
       const reader = res.body?.getReader();
       if (!reader) throw new Error('No reader');
 
@@ -112,9 +166,7 @@ export default function ChatInterface() {
                   return updated;
                 });
               }
-            } catch {
-              // Skip unparseable chunks
-            }
+            } catch { /* skip */ }
           }
         }
       }
@@ -151,9 +203,8 @@ export default function ChatInterface() {
           </h2>
           <p className="ai-note mb-6">
             <span className="ai-sigil inline-flex mr-1.5">AI</span>
-            Editorial console · Jean-Claude, AI Correspondent
+            Editorial console · Jean-Claude &amp; Sophia
           </p>
-
           <input
             type="password"
             value={password}
@@ -179,93 +230,104 @@ export default function ChatInterface() {
   }
 
   return (
-    <div className="chat-container fade-up">
-      {/* ── Chat header ── */}
-      <div className="px-5 py-3 bg-brand-dark text-brand-light flex items-center justify-between gap-3 border-b border-brand-light/10">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5">
-            <span className="font-[family-name:var(--font-heading)] font-black italic text-sm">Jean-Claude</span>
-            <span className="ai-sigil">AI</span>
-          </div>
-          <p className="ai-note text-brand-light/30 mt-0.5">
-            Newsroom Desk · The Claude Times
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-brand-light/40" />
-          <span className="font-[family-name:var(--font-heading)] text-[10px] italic text-brand-light/30">
-            Online
-          </span>
-        </div>
-      </div>
-
-      {/* ── Messages ── */}
-      <div className="chat-messages">
-        {messages.length === 0 && (
-          <div className="text-center py-12">
-            <p className="font-[family-name:var(--font-heading)] italic text-xl font-bold text-brand-dark mb-2">
-              Ready for assignment.
-            </p>
-            <p className="font-[family-name:var(--font-body)] italic text-sm text-brand-mid max-w-md mx-auto leading-relaxed">
-              Drop a topic and I&apos;ll draft an article with a clear angle and
-              publication-ready structure.
-            </p>
-          </div>
-        )}
-
-        {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[86%] px-4 py-3 text-sm whitespace-pre-wrap ${
-                msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'
-              }`}
-            >
-              <div className="font-[family-name:var(--font-heading)] text-[9px] uppercase tracking-widest mb-1.5 opacity-50">
-                {msg.role === 'user' ? 'Editor' : 'Jean-Claude'}
-              </div>
-              {msg.content}
-            </div>
-          </div>
-        ))}
-
-        {loading && messages[messages.length - 1]?.role === 'user' && (
-          <div className="flex justify-start mb-3">
-            <div className="chat-bubble-assistant px-4 py-3 text-brand-mid">
-              <span className="inline-flex gap-1.5">
-                <span className="animate-pulse">●</span>
-                <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>●</span>
-                <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>●</span>
-              </span>
-            </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* ── Input ── */}
-      <div className="p-3 border-t border-brand-rule bg-brand-light">
-        <div className="flex gap-2">
-          <textarea
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Assign a story… (Enter to send, Shift+Enter for new line)"
-            rows={2}
-            className="flex-1 px-4 py-2.5 border border-brand-rule bg-brand-light font-[family-name:var(--font-body)] text-sm resize-none focus:outline-none focus:border-brand-dark"
-            disabled={loading}
-          />
+    <div className="flex flex-col gap-0">
+      {/* ── Journalist switcher tabs ── */}
+      <div className="flex border-b border-brand-rule mb-6">
+        {(Object.entries(JOURNALISTS) as [Journalist, typeof JOURNALISTS[Journalist]][]).map(([key, info]) => (
           <button
-            onClick={sendMessage}
-            disabled={loading || !input.trim()}
-            className="px-5 py-2.5 bg-brand-dark text-brand-light font-[family-name:var(--font-heading)] text-xs font-bold uppercase tracking-widest hover:opacity-75 disabled:opacity-30"
+            key={key}
+            onClick={() => handleJournalistSwitch(key)}
+            className={`flex items-center gap-2.5 px-5 py-3 font-[family-name:var(--font-heading)] text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${
+              journalist === key
+                ? 'border-brand-dark text-brand-dark'
+                : 'border-transparent text-brand-mid hover:text-brand-dark'
+            }`}
           >
-            Send
+            <span className="byline-avatar text-[9px]" style={{ width: 22, height: 22, fontSize: '0.5rem' }}>
+              {info.initials}
+            </span>
+            {info.name}
           </button>
+        ))}
+      </div>
+
+      {/* ── Chat window ── */}
+      <div className="chat-container">
+        {/* Header */}
+        <div className="px-5 py-3 bg-brand-dark text-brand-light flex items-center justify-between gap-3 border-b border-brand-light/10">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2.5">
+              <span className="font-[family-name:var(--font-heading)] font-black italic text-sm">{j.name}</span>
+              <span className="ai-sigil">AI</span>
+            </div>
+            <p className="ai-note text-brand-light/30 mt-0.5">{j.role} · The Claude Times</p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-light/40" />
+            <span className="font-[family-name:var(--font-heading)] text-[10px] italic text-brand-light/30">Online</span>
+          </div>
+        </div>
+
+        {/* Messages */}
+        <div className="chat-messages">
+          {messages.length === 0 && (
+            <div className="text-center py-12">
+              <p className="font-[family-name:var(--font-heading)] italic text-xl font-bold text-brand-dark mb-2">
+                {j.greeting.title}
+              </p>
+              <p className="font-[family-name:var(--font-body)] italic text-sm text-brand-mid max-w-md mx-auto leading-relaxed">
+                {j.greeting.sub}
+              </p>
+            </div>
+          )}
+
+          {messages.map((msg, i) => (
+            <div key={i} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[86%] px-4 py-3 text-sm whitespace-pre-wrap ${msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
+                <div className="font-[family-name:var(--font-heading)] text-[9px] uppercase tracking-widest mb-1.5 opacity-50">
+                  {msg.role === 'user' ? 'Editor' : j.name}
+                </div>
+                {msg.content}
+              </div>
+            </div>
+          ))}
+
+          {loading && messages[messages.length - 1]?.role === 'user' && (
+            <div className="flex justify-start mb-3">
+              <div className="chat-bubble-assistant px-4 py-3 text-brand-mid">
+                <span className="inline-flex gap-1.5">
+                  <span className="animate-pulse">●</span>
+                  <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>●</span>
+                  <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>●</span>
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+
+        {/* Input */}
+        <div className="p-3 border-t border-brand-rule bg-brand-light">
+          <div className="flex gap-2">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={j.placeholder}
+              rows={2}
+              className="flex-1 px-4 py-2.5 border border-brand-rule bg-brand-light font-[family-name:var(--font-body)] text-sm resize-none focus:outline-none focus:border-brand-dark"
+              disabled={loading}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={loading || !input.trim()}
+              className="px-5 py-2.5 bg-brand-dark text-brand-light font-[family-name:var(--font-heading)] text-xs font-bold uppercase tracking-widest hover:opacity-75 disabled:opacity-30"
+            >
+              Send
+            </button>
+          </div>
         </div>
       </div>
     </div>

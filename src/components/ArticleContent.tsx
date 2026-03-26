@@ -19,6 +19,19 @@ interface ContentBlock {
   variant?: 'analysis' | 'context' | 'opinion';
   items?: string[];
   ordered?: boolean;
+  // chapter
+  number?: number;
+  // person
+  name?: string;
+  role?: string;
+  description?: string;
+  // comparison
+  left_label?: string;
+  right_label?: string;
+  points?: { aspect: string; left: string; right: string }[];
+  // map_highlight
+  region?: string;
+  stakes?: string;
 }
 
 function Paragraph({ block }: { block: ContentBlock }) {
@@ -185,6 +198,80 @@ function Separator() {
   );
 }
 
+function Chapter({ block }: { block: ContentBlock }) {
+  return (
+    <div className="chapter-marker">
+      <div className="chapter-number">Chapter {block.number}</div>
+      <div className="chapter-title">{block.title}</div>
+    </div>
+  );
+}
+
+function PullQuote({ block }: { block: ContentBlock }) {
+  return (
+    <div className="inline-pull-quote">
+      <div className="inline-pull-quote-text">{block.text}</div>
+      {block.context && (
+        <div className="inline-pull-quote-context">{block.context}</div>
+      )}
+    </div>
+  );
+}
+
+function Person({ block }: { block: ContentBlock }) {
+  return (
+    <div className="person-card my-8">
+      <div className="person-card-header">
+        <div className="person-card-name">{block.name}</div>
+        {block.role && <div className="person-card-role">{block.role}</div>}
+      </div>
+      {block.description && (
+        <div className="person-card-body">{block.description}</div>
+      )}
+    </div>
+  );
+}
+
+function Comparison({ block }: { block: ContentBlock }) {
+  const points = block.points ?? [];
+  return (
+    <div className="comparison-block my-8">
+      <div className="comparison-header">
+        <div className="comparison-header-cell">{block.left_label}</div>
+        <div className="comparison-header-cell">{block.right_label}</div>
+      </div>
+      {points.map((p, i) => (
+        <div key={i}>
+          <div className="comparison-aspect">{p.aspect}</div>
+          <div className="comparison-row">
+            <div className="comparison-cell">{p.left}</div>
+            <div className="comparison-cell comparison-cell-right">{p.right}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function MapHighlight({ block }: { block: ContentBlock }) {
+  return (
+    <div className="map-highlight my-8">
+      {block.region && (
+        <div className="map-highlight-region">Geographic Focus · {block.region}</div>
+      )}
+      {block.label && (
+        <div className="map-highlight-label">{block.label}</div>
+      )}
+      {block.context && (
+        <div className="map-highlight-text">{block.context}</div>
+      )}
+      {block.stakes && (
+        <div className="map-highlight-stakes">{block.stakes}</div>
+      )}
+    </div>
+  );
+}
+
 export default function ArticleContent({ content }: { content: string }) {
   let blocks: ContentBlock[];
   try {
@@ -201,11 +288,16 @@ export default function ArticleContent({ content }: { content: string }) {
         switch (block.type) {
           case 'paragraph': return <Paragraph key={i} block={block} />;
           case 'heading': return <Heading key={i} block={block} />;
-          case 'table': return <Table key={i} block={block} />;
-          case 'timeline': return <Timeline key={i} block={block} />;
+          case 'chapter': return <Chapter key={i} block={block} />;
+          case 'pull_quote': return <PullQuote key={i} block={block} />;
           case 'quote': return <Quote key={i} block={block} />;
-          case 'key_figure': return <KeyFigure key={i} block={block} />;
           case 'callout': return <Callout key={i} block={block} />;
+          case 'person': return <Person key={i} block={block} />;
+          case 'key_figure': return <KeyFigure key={i} block={block} />;
+          case 'comparison': return <Comparison key={i} block={block} />;
+          case 'map_highlight': return <MapHighlight key={i} block={block} />;
+          case 'timeline': return <Timeline key={i} block={block} />;
+          case 'table': return <Table key={i} block={block} />;
           case 'list': return <List key={i} block={block} />;
           case 'separator': return <Separator key={i} />;
           default: return null;

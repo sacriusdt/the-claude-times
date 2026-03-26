@@ -409,6 +409,213 @@ body {
 
 /* Timeline — layout handled inline in ArticleContent.tsx */
 
+/* ─── Chapter Marker ─────────────────────────────────────
+   For long-form multi-act articles only.
+ ─────────────────────────────────────────────────────── */
+.chapter-marker {
+  margin: 4.5rem 0 2.5rem;
+  text-align: center;
+  padding: 2rem 0 1.5rem;
+  border-top: 3px solid var(--color-brand-dark);
+  position: relative;
+}
+.chapter-marker::before {
+  content: "";
+  position: absolute;
+  top: 3px; left: 0; right: 0;
+  height: 0.5px;
+  background: var(--color-brand-dark);
+}
+.chapter-number {
+  font-family: var(--font-heading);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--color-brand-mid);
+  margin-bottom: 0.6rem;
+}
+.chapter-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1.15;
+  color: var(--color-brand-dark);
+}
+
+/* ─── Inline Pull Quote ──────────────────────────────────
+   A phrase extracted from the article itself — full-width,
+   centred, bounded by rules. One per article.
+ ─────────────────────────────────────────────────────── */
+.inline-pull-quote {
+  margin: 3rem 0;
+  padding: 1.75rem 2rem;
+  border-top: 3px solid var(--color-brand-dark);
+  border-bottom: 0.5px solid var(--color-brand-rule);
+  text-align: center;
+  position: relative;
+}
+.inline-pull-quote::before {
+  content: "";
+  position: absolute;
+  top: 3px; left: 0; right: 0;
+  height: 0.5px;
+  background: var(--color-brand-dark);
+}
+.inline-pull-quote-text {
+  font-family: var(--font-heading);
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.38;
+  color: var(--color-brand-dark);
+}
+.inline-pull-quote-context {
+  margin-top: 0.75rem;
+  font-family: var(--font-heading);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--color-brand-mid);
+}
+
+/* ─── Person Card ────────────────────────────────────────
+   Compact profile for a key figure in the story.
+ ─────────────────────────────────────────────────────── */
+.person-card {
+  border: 0.5px solid var(--color-brand-rule);
+  border-top: 3px solid var(--color-brand-dark);
+}
+.person-card-header {
+  background: var(--color-brand-dark);
+  padding: 0.8rem 1.25rem;
+}
+.person-card-name {
+  font-family: var(--font-heading);
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--color-brand-light);
+  line-height: 1.2;
+}
+.person-card-role {
+  margin-top: 3px;
+  font-family: var(--font-heading);
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(250, 249, 245, 0.45);
+}
+.person-card-body {
+  padding: 1rem 1.25rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: rgba(20, 20, 19, 0.88);
+  font-style: italic;
+}
+
+/* ─── Comparison Block ───────────────────────────────────
+   Two positions face to face. The contrast is the point.
+ ─────────────────────────────────────────────────────── */
+.comparison-block {
+  border: 0.5px solid var(--color-brand-rule);
+  border-top: 3px solid var(--color-brand-dark);
+  overflow-x: auto;
+}
+.comparison-header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--color-brand-dark);
+}
+.comparison-header-cell {
+  padding: 0.65rem 1.1rem;
+  font-family: var(--font-heading);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: rgba(250, 249, 245, 0.7);
+}
+.comparison-header-cell:first-child {
+  border-right: 0.5px solid rgba(250, 249, 245, 0.12);
+}
+.comparison-aspect {
+  padding: 0.45rem 1.1rem;
+  font-family: var(--font-heading);
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--color-brand-mid);
+  background: rgba(20, 20, 19, 0.025);
+  border-bottom: 0.5px solid var(--color-brand-rule);
+  border-top: 0.5px solid var(--color-brand-rule);
+}
+.comparison-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 0.5px solid var(--color-brand-rule);
+}
+.comparison-row:last-child { border-bottom: none; }
+.comparison-cell {
+  padding: 0.75rem 1.1rem;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: rgba(20, 20, 19, 0.88);
+}
+.comparison-cell-right {
+  border-left: 0.5px solid var(--color-brand-rule);
+}
+
+/* ─── Map Highlight ──────────────────────────────────────
+   Geographic context sidebar. Text-only, no actual map.
+ ─────────────────────────────────────────────────────── */
+.map-highlight {
+  padding: 1.1rem 1.4rem;
+  border-left: 3px solid var(--color-brand-mid);
+  background: rgba(20, 20, 19, 0.025);
+}
+.map-highlight-region {
+  font-family: var(--font-heading);
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-brand-mid);
+  margin-bottom: 0.4rem;
+}
+.map-highlight-label {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-style: italic;
+  color: var(--color-brand-dark);
+  margin-bottom: 0.7rem;
+  line-height: 1.25;
+}
+.map-highlight-text {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  color: rgba(20, 20, 19, 0.88);
+  margin-bottom: 0.5rem;
+}
+.map-highlight-stakes {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-style: italic;
+  line-height: 1.65;
+  color: rgba(20, 20, 19, 0.62);
+  border-top: 0.5px solid var(--color-brand-rule);
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
 /* ─── Editorial Table ────────────────────────────────────*/
 .editorial-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 .editorial-table thead th {

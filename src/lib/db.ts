@@ -76,6 +76,8 @@ function migrate(db: Database.Database) {
     'ALTER TABLE articles ADD COLUMN geo_lat REAL',
     'ALTER TABLE articles ADD COLUMN geo_lng REAL',
     'ALTER TABLE articles ADD COLUMN geo_label TEXT',
+    "ALTER TABLE articles ADD COLUMN author TEXT DEFAULT 'Jean-Claude'",
+    "ALTER TABLE chat_messages ADD COLUMN journalist TEXT DEFAULT 'jean-claude'",
   ]) {
     try { db.exec(col); } catch { /* column already exists */ }
   }
@@ -130,12 +132,13 @@ export function insertArticle(article: {
   geo_lat?: number | null;
   geo_lng?: number | null;
   geo_label?: string | null;
+  author?: string;
 }) {
   const db = getDb();
   return db.prepare(`
-    INSERT INTO articles (slug, title, subtitle, category, content, summary, source_items, image_url, image_query, geo_lat, geo_lng, geo_label)
-    VALUES (@slug, @title, @subtitle, @category, @content, @summary, @source_items, @image_url, @image_query, @geo_lat, @geo_lng, @geo_label)
-  `).run(article);
+    INSERT INTO articles (slug, title, subtitle, category, content, summary, source_items, image_url, image_query, geo_lat, geo_lng, geo_label, author)
+    VALUES (@slug, @title, @subtitle, @category, @content, @summary, @source_items, @image_url, @image_query, @geo_lat, @geo_lng, @geo_label, @author)
+  `).run({ ...article, author: article.author ?? 'Jean-Claude' });
 }
 
 export function getGeoArticles() {
@@ -174,14 +177,14 @@ export function deleteArticle(slug: string) {
   return db.prepare('DELETE FROM articles WHERE slug = ?').run(slug);
 }
 
-// Returns a lightweight memory of recent articles for editorial deduplication
+// Returns a lightweight memory of recent articles for editorial deduplication (across all journalists)
 export function getRecentArticleMemory(limit = 20) {
   const db = getDb();
   return db.prepare(`
-    SELECT title, subtitle, category, summary, published_at
+    SELECT title, subtitle, category, summary, published_at, author
     FROM articles WHERE status = 'published'
     ORDER BY published_at DESC LIMIT ?
-  `).all(limit) as Pick<Article, 'title' | 'subtitle' | 'category' | 'summary' | 'published_at'>[];
+  `).all(limit) as Pick<Article, 'title' | 'subtitle' | 'category' | 'summary' | 'published_at' | 'author'>[];
 }
 
 export function getAllArticles(limit = 100) {
@@ -194,14 +197,14 @@ export function getAllArticles(limit = 100) {
 
 // --- Chat ---
 
-export function insertChatMessage(role: string, content: string) {
+export function insertChatMessage(role: string, content: string, journalist: string = 'jean-claude') {
   const db = getDb();
-  return db.prepare('INSERT INTO chat_messages (role, content) VALUES (?, ?)').run(role, content);
+  return db.prepare('INSERT INTO chat_messages (role, content, journalist) VALUES (?, ?, ?)').run(role, content, journalist);
 }
 
-export function getChatHistory(limit = 50) {
+export function getChatHistory(limit = 50, journalist: string = 'jean-claude') {
   const db = getDb();
-  return db.prepare('SELECT * FROM chat_messages ORDER BY created_at DESC LIMIT ?').all(limit) as ChatMessage[];
+  return db.prepare('SELECT * FROM chat_messages WHERE journalist = ? ORDER BY created_at DESC LIMIT ?').all(journalist, limit) as ChatMessage[];
 }
 
 // --- Agent State ---
@@ -270,5 +273,6 @@ export interface ChatMessage {
   id: number;
   role: string;
   content: string;
+  journalist: string;
   created_at: string;
 }

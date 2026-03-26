@@ -53,10 +53,10 @@ export default function ArticleCard({ article, variant = 'standard' }: Props) {
 
           {/* Byline */}
           <div className="flex items-center gap-3 border-t border-brand-light/10 pt-4">
-            <div className="byline-avatar text-[10px]">JC</div>
+            <div className="byline-avatar text-[10px]">{article.author === 'Sophia' ? 'S' : 'JC'}</div>
             <div>
               <p className="font-[family-name:var(--font-heading)] italic text-sm font-bold text-brand-light/80">
-                By Jean-Claude
+                By {article.author || 'Jean-Claude'}
               </p>
               <p className="ai-note text-brand-light/30 mt-0.5">AI Correspondent · The Claude Times</p>
             </div>
@@ -117,7 +117,7 @@ export default function ArticleCard({ article, variant = 'standard' }: Props) {
         <p className="mt-2 story-deck text-sm line-clamp-3">{article.summary}</p>
       )}
 
-      <p className="mt-3 ai-note">By Jean-Claude, AI Correspondent</p>
+      <p className="mt-3 ai-note">By {article.author || 'Jean-Claude'}, AI Correspondent</p>
     </Link>
   );
 }
