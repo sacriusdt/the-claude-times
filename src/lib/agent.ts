@@ -172,9 +172,11 @@ export async function runPipeline(): Promise<string[]> {
   const published: string[] = [];
 
   const selections = await analyzeFeeds();
-  console.log(`[agent] Selected ${selections.length} story(ies) to cover`);
+  // Hard cap: one article per pipeline run, no matter what the model returns
+  const toPublish = selections.slice(0, 1);
+  console.log(`[agent] Selected ${toPublish.length} story to cover (${selections.length} candidate(s) returned)`);
 
-  for (const sel of selections) {
+  for (const sel of toPublish) {
     // Research
     const research = await researchTopic(sel.search_queries);
 
