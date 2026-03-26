@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "db:reset": "rm -f data/claude-times.db && node -e \"require('./src/lib/db')\""
+    "db:reset": "node scripts/db-reset.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
