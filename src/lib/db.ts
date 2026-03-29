@@ -73,6 +73,11 @@ function migrate(db: Database.Database) {
 
   // Add geo columns to existing DBs (safe to run multiple times)
   for (const col of [
+    "ALTER TABLE articles ADD COLUMN status TEXT DEFAULT 'published'",
+    "ALTER TABLE articles ADD COLUMN published_at TEXT DEFAULT (datetime('now'))",
+    'ALTER TABLE articles ADD COLUMN source_items TEXT',
+    'ALTER TABLE articles ADD COLUMN image_url TEXT',
+    'ALTER TABLE articles ADD COLUMN image_query TEXT',
     'ALTER TABLE articles ADD COLUMN geo_lat REAL',
     'ALTER TABLE articles ADD COLUMN geo_lng REAL',
     'ALTER TABLE articles ADD COLUMN geo_label TEXT',

@@ -57,11 +57,13 @@ export default function ChatInterface() {
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
 
   const loadHistory = async (j: Journalist, pwd: string) => {
+    const normalizedPassword = pwd.trim();
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pwd, message: '__auth_check__', journalist: j }),
+        body: JSON.stringify({ password: normalizedPassword, message: '__auth_check__', journalist: j }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -74,13 +76,16 @@ export default function ChatInterface() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    const normalizedPassword = password.trim();
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, message: '__auth_check__', journalist: 'jean-claude' }),
+        body: JSON.stringify({ password: normalizedPassword, message: '__auth_check__', journalist: 'jean-claude' }),
       });
       if (res.ok) {
+        setPassword(normalizedPassword);
         setAuthenticated(true);
         setAuthError('');
         const data = await res.json();
@@ -88,9 +93,10 @@ export default function ChatInterface() {
           setMessagesByJournalist(prev => ({ ...prev, 'jean-claude': data.history }));
         }
         // Pre-load Sophia's history too
-        loadHistory('sophia', password);
+        loadHistory('sophia', normalizedPassword);
       } else {
-        setAuthError('Invalid password');
+        const data = await res.json().catch(() => ({ error: 'Invalid password' }));
+        setAuthError(data.error || 'Invalid password');
       }
     } catch {
       setAuthError('Connection error');
@@ -107,6 +113,7 @@ export default function ChatInterface() {
 
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
+    const normalizedPassword = password.trim();
 
     const userMessage = input.trim();
     setInput('');
@@ -117,7 +124,7 @@ export default function ChatInterface() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password, message: userMessage, journalist }),
+        body: JSON.stringify({ password: normalizedPassword, message: userMessage, journalist }),
       });
 
       if (!res.ok) throw new Error('Chat failed');
@@ -211,6 +218,9 @@ export default function ChatInterface() {
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Admin password"
             className="w-full px-4 py-3 border border-brand-rule bg-brand-light text-brand-dark placeholder:text-brand-mid focus:outline-none focus:border-brand-dark font-[family-name:var(--font-body)] text-sm"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             autoFocus
           />
           {authError && (

@@ -4,17 +4,30 @@ import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
-const CATEGORIES = ['international', 'politics', 'geopolitics', 'business'] as const;
+const CATEGORIES = ['breaking-news', 'international', 'politics', 'geopolitics', 'business'] as const;
 
 export default function FrontPage() {
-  const allArticles = getLatestArticles(20);
+  let allArticles: ReturnType<typeof getLatestArticles> = [];
+  let byCategory: Record<(typeof CATEGORIES)[number], ReturnType<typeof getArticlesByCategory>> = {
+    'breaking-news': [],
+    international: [],
+    politics: [],
+    geopolitics: [],
+    business: [],
+  };
+
+  try {
+    allArticles = getLatestArticles(20);
+    byCategory = Object.fromEntries(
+      CATEGORIES.map(cat => [cat, getArticlesByCategory(cat, 3)])
+    ) as typeof byCategory;
+  } catch (error) {
+    console.error('[frontpage] Failed to load articles:', error);
+  }
+
   const featured   = allArticles[0];
   const secondary  = allArticles.slice(1, 4);
   const rest       = allArticles.slice(4);
-
-  const byCategory = Object.fromEntries(
-    CATEGORIES.map(cat => [cat, getArticlesByCategory(cat, 3)])
-  );
 
   /* ── Empty state ──────────────────────────────────────── */
   if (allArticles.length === 0) {
@@ -62,7 +75,7 @@ export default function FrontPage() {
       </div>
 
       {/* ── Category sections ─────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
         {CATEGORIES.map(cat => {
           const articles = byCategory[cat];
           if (!articles || articles.length === 0) return null;
@@ -73,7 +86,7 @@ export default function FrontPage() {
                   href={`/${cat}`}
                   className="section-head-label hover:text-brand-mid transition-colors"
                 >
-                  {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                  {cat.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')}
                 </Link>
               </div>
               <div className="mt-2">

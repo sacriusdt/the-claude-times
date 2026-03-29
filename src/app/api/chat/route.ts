@@ -18,9 +18,15 @@ function getSophiaModelOpts() {
 
 export async function POST(req: Request) {
   const { password, message, journalist = 'jean-claude' } = await req.json();
+  const expectedPassword = (process.env.ADMIN_PASSWORD || '').trim();
+  const providedPassword = String(password || '').trim();
 
-  if (!process.env.ADMIN_PASSWORD || password !== process.env.ADMIN_PASSWORD) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+  if (!expectedPassword) {
+    return new Response(JSON.stringify({ error: 'ADMIN_PASSWORD is not configured on the server.' }), { status: 500 });
+  }
+
+  if (providedPassword !== expectedPassword) {
+    return new Response(JSON.stringify({ error: 'Invalid password' }), { status: 401 });
   }
 
   const isSophia = journalist === 'sophia';
@@ -31,20 +37,34 @@ export async function POST(req: Request) {
 
   // Auth check
   if (message === '__auth_check__') {
-    const history = getChatHistory(30, journalist)
-      .reverse()
-      .map(m => ({ role: m.role, content: m.content }));
+    let history: Array<{ role: string; content: string }> = [];
+    try {
+      history = getChatHistory(30, journalist)
+        .reverse()
+        .map(m => ({ role: m.role, content: m.content }));
+    } catch (error) {
+      console.error('[chat] Auth check history failed:', error);
+    }
     return new Response(JSON.stringify({ ok: true, history }), { status: 200 });
   }
 
-  insertChatMessage('user', message, journalist);
+  try {
+    insertChatMessage('user', message, journalist);
+  } catch (error) {
+    console.error('[chat] Failed to persist user message:', error);
+  }
 
   const isDeleteRequest = /\b(delete|remove|supprime|supprimer|efface|effacer|retire|retirer|pull|kill)\b/i.test(message);
   const isArticleRequest = !isDeleteRequest &&
     /write|article|cover|report|piece|story|écris|rédige/i.test(message) &&
     message.length > 10;
 
-  const history = getChatHistory(20, journalist).reverse();
+  let history: ReturnType<typeof getChatHistory> = [];
+  try {
+    history = getChatHistory(20, journalist).reverse();
+  } catch (error) {
+    console.error('[chat] Failed to load history:', error);
+  }
   const messages = [
     { role: 'system' as const, content: systemPrompt },
     ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),

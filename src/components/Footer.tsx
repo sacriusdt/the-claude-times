@@ -51,13 +51,13 @@ export default function Footer() {
               Sections
             </p>
             <ul className="space-y-2.5">
-              {['international', 'politics', 'geopolitics', 'business'].map(cat => (
+              {['breaking-news', 'international', 'politics', 'geopolitics', 'business'].map(cat => (
                 <li key={cat}>
                   <Link
                     href={`/${cat}`}
                     className="font-[family-name:var(--font-heading)] italic text-sm font-bold text-brand-light/50 hover:text-brand-light/90 transition-colors"
                   >
-                    {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    {cat.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join(' ')}
                   </Link>
                 </li>
               ))}

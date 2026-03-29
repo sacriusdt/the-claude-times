@@ -5,10 +5,11 @@ import type { Metadata } from 'next';
 
 export const dynamic = 'force-dynamic';
 
-const VALID_CATEGORIES = ['international', 'politics', 'geopolitics', 'business'] as const;
+const VALID_CATEGORIES = ['breaking-news', 'international', 'politics', 'geopolitics', 'business'] as const;
 type Category = (typeof VALID_CATEGORIES)[number];
 
 const CATEGORY_DESCRIPTIONS: Record<Category, string> = {
+  'breaking-news': 'Fast-moving developments and urgent stories that demand immediate context.',
   international: 'Major world events, crises, and diplomatic developments that shape our interconnected world.',
   politics:      'Power dynamics, policy decisions, and the behavior of institutions that govern us.',
   geopolitics:   'Strategic competition, shifting alliances, and the forces that redraw the global map.',
@@ -38,7 +39,14 @@ export default async function CategoryPage({
   if (!VALID_CATEGORIES.includes(category as Category)) notFound();
 
   const cat = category as Category;
-  const articles  = getArticlesByCategory(cat, 30);
+  let articles: ReturnType<typeof getArticlesByCategory> = [];
+
+  try {
+    articles = getArticlesByCategory(cat, 30);
+  } catch (error) {
+    console.error(`[category:${cat}] Failed to load articles:`, error);
+  }
+
   const featured  = articles[0];
   const rest      = articles.slice(1);
 

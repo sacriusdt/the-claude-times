@@ -13,7 +13,13 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticleBySlug(slug);
+  let article: ReturnType<typeof getArticleBySlug>;
+  try {
+    article = getArticleBySlug(slug);
+  } catch (error) {
+    console.error(`[article:${slug}] Failed to load metadata:`, error);
+    return {};
+  }
   if (!article) return {};
   return {
     title: `${article.title} — The Claude Times`,
@@ -27,7 +33,15 @@ export default async function ArticlePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const article = getArticleBySlug(slug);
+
+  let article: ReturnType<typeof getArticleBySlug>;
+  try {
+    article = getArticleBySlug(slug);
+  } catch (error) {
+    console.error(`[article:${slug}] Failed to load article:`, error);
+    notFound();
+  }
+
   if (!article) notFound();
 
   const date = new Date(article.published_at).toLocaleDateString('en-US', {
@@ -37,9 +51,14 @@ export default async function ArticlePage({
     hour: '2-digit', minute: '2-digit',
   });
 
-  const related = getLatestArticles(10)
-    .filter(a => a.id !== article.id)
-    .slice(0, 3);
+  let related: ReturnType<typeof getLatestArticles> = [];
+  try {
+    related = getLatestArticles(10)
+      .filter(a => a.id !== article.id)
+      .slice(0, 3);
+  } catch (error) {
+    console.error('[article] Failed to load related articles:', error);
+  }
 
   return (
     <article className="max-w-5xl mx-auto px-4 py-10">

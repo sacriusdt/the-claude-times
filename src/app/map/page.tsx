@@ -10,7 +10,13 @@ export const metadata: Metadata = {
 };
 
 export default function MapPage() {
-  const articles = getGeoArticles();
+  let articles: ReturnType<typeof getGeoArticles> = [];
+
+  try {
+    articles = getGeoArticles();
+  } catch (error) {
+    console.error('[map] Failed to load geo articles:', error);
+  }
 
   return (
     <div className="flex flex-col flex-1">
