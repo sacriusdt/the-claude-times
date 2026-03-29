@@ -20,7 +20,7 @@ export default function ChatPage() {
           The Newsroom
         </h1>
         <p className="font-[family-name:var(--font-body)] italic story-deck max-w-xl">
-          Your direct line to Jean-Claude and Sophia. Assign stories, manage the archive, and steer editorial direction.
+          Your direct line to Jean-Claude. Assign stories, manage the archive, and steer editorial direction.
         </p>
       </header>
       <ChatInterface />

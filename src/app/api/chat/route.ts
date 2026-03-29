@@ -1,23 +1,13 @@
 import { streamComplete } from '@/lib/providers';
-import { writeArticleOnDemand, sophiaWriteArticleOnDemand } from '@/lib/agent';
+import { writeArticleOnDemand } from '@/lib/agent';
 import { insertChatMessage, getChatHistory, getLatestArticles, deleteArticle } from '@/lib/db';
-import {
-  JEAN_CLAUDE_SYSTEM, CHAT_SYSTEM,
-  SOPHIA_SYSTEM, SOPHIA_CHAT_SYSTEM,
-} from '@/lib/personality';
+import { JEAN_CLAUDE_SYSTEM, CHAT_SYSTEM } from '@/lib/personality';
 import { complete } from '@/lib/providers';
 
 export const maxDuration = 300;
 
-function getSophiaModelOpts() {
-  return {
-    modelOverride: process.env.SOPHIA_MODEL || undefined,
-    providerOverride: (process.env.SOPHIA_PROVIDER as 'anthropic' | 'openai' | 'openrouter') || undefined,
-  };
-}
-
 export async function POST(req: Request) {
-  const { password, message, journalist = 'jean-claude' } = await req.json();
+  const { password, message } = await req.json();
   const expectedPassword = (process.env.ADMIN_PASSWORD || '').trim();
   const providedPassword = String(password || '').trim();
 
@@ -29,17 +19,13 @@ export async function POST(req: Request) {
     return new Response(JSON.stringify({ error: 'Invalid password' }), { status: 401 });
   }
 
-  const isSophia = journalist === 'sophia';
-  const systemPrompt = isSophia
-    ? SOPHIA_SYSTEM + '\n\n' + SOPHIA_CHAT_SYSTEM
-    : JEAN_CLAUDE_SYSTEM + '\n\n' + CHAT_SYSTEM;
-  const sophiaOpts = isSophia ? getSophiaModelOpts() : {};
+  const systemPrompt = JEAN_CLAUDE_SYSTEM + '\n\n' + CHAT_SYSTEM;
 
   // Auth check
   if (message === '__auth_check__') {
     let history: Array<{ role: string; content: string }> = [];
     try {
-      history = getChatHistory(30, journalist)
+      history = getChatHistory(30, 'jean-claude')
         .reverse()
         .map(m => ({ role: m.role, content: m.content }));
     } catch (error) {
@@ -49,7 +35,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    insertChatMessage('user', message, journalist);
+    insertChatMessage('user', message, 'jean-claude');
   } catch (error) {
     console.error('[chat] Failed to persist user message:', error);
   }
@@ -61,7 +47,7 @@ export async function POST(req: Request) {
 
   let history: ReturnType<typeof getChatHistory> = [];
   try {
-    history = getChatHistory(20, journalist).reverse();
+    history = getChatHistory(20, 'jean-claude').reverse();
   } catch (error) {
     console.error('[chat] Failed to load history:', error);
   }
@@ -82,11 +68,10 @@ export async function POST(req: Request) {
           if (articles.length === 0) {
             const reply = "There's nothing to delete — the archive is empty.";
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: reply })}\n\n`));
-            insertChatMessage('assistant', reply, journalist);
+            insertChatMessage('assistant', reply, 'jean-claude');
           } else {
             const articleList = articles.map(a => `- slug: "${a.slug}" | title: "${a.title}" | author: ${a.author} | date: ${a.published_at.slice(0, 10)}`).join('\n');
             const identifyResponse = await complete({
-              ...sophiaOpts,
               messages: [
                 { role: 'system', content: 'You are helping identify which article to delete. Respond ONLY with a JSON object: {"slug": "...", "title": "...", "found": true} if found, or {"found": false} if no match. No explanation.' },
                 { role: 'user', content: `Editor request: "${message}"\n\nPublished articles:\n${articleList}` },
@@ -104,12 +89,11 @@ export async function POST(req: Request) {
             if (!identified.found || !identified.slug) {
               const reply = "I couldn't identify which article you want to pull. Could you be more specific?";
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: reply })}\n\n`));
-              insertChatMessage('assistant', reply, journalist);
+              insertChatMessage('assistant', reply, 'jean-claude');
             } else {
               deleteArticle(identified.slug);
 
               const confirmStream = streamComplete({
-                ...sophiaOpts,
                 messages: [
                   { role: 'system', content: systemPrompt },
                   { role: 'user', content: `The editor asked you to delete the article "${identified.title}". It's done — confirm briefly (1-2 sentences max).` },
@@ -125,7 +109,7 @@ export async function POST(req: Request) {
               }
 
               controller.enqueue(encoder.encode(`data: ${JSON.stringify({ deleted: { slug: identified.slug, title: identified.title } })}\n\n`));
-              insertChatMessage('assistant', fullReply + `\n\n[Article deleted: "${identified.title}"]`, journalist);
+              insertChatMessage('assistant', fullReply + `\n\n[Article deleted: "${identified.title}"]`, 'jean-claude');
             }
           }
         } else if (isArticleRequest) {
@@ -136,7 +120,6 @@ export async function POST(req: Request) {
 
           let fullResponse = '';
           const chatStream = streamComplete({
-            ...sophiaOpts,
             messages: chatMessages,
             maxTokens: 300,
             stream: true,
@@ -146,12 +129,11 @@ export async function POST(req: Request) {
             fullResponse += chunk;
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
           }
-          insertChatMessage('assistant', fullResponse, journalist);
+          insertChatMessage('assistant', fullResponse, 'jean-claude');
 
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: '\n\n⏳ Researching and writing...' })}\n\n`));
 
           const topicResponse = await complete({
-            ...sophiaOpts,
             messages: [
               { role: 'system', content: 'Extract the article topic from the user message. Respond with just the topic, nothing else.' },
               { role: 'user', content: message },
@@ -160,20 +142,17 @@ export async function POST(req: Request) {
             temperature: 0,
           });
 
-          const article = isSophia
-            ? await sophiaWriteArticleOnDemand(topicResponse.trim(), message)
-            : await writeArticleOnDemand(topicResponse.trim(), message);
+          const article = await writeArticleOnDemand(topicResponse.trim(), message);
 
           if (article) {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ article })}\n\n`));
-            insertChatMessage('assistant', `Article published: "${article.title}" → /article/${article.slug}`, journalist);
+            insertChatMessage('assistant', `Article published: "${article.title}" → /article/${article.slug}`, 'jean-claude');
           } else {
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: '\n\nHit a wall on that one. Try again?' })}\n\n`));
           }
         } else {
           let fullResponse = '';
           const chatStream = streamComplete({
-            ...sophiaOpts,
             messages,
             maxTokens: 1500,
             stream: true,
@@ -183,7 +162,7 @@ export async function POST(req: Request) {
             fullResponse += chunk;
             controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: chunk })}\n\n`));
           }
-          insertChatMessage('assistant', fullResponse, journalist);
+          insertChatMessage('assistant', fullResponse, 'jean-claude');
         }
 
         controller.enqueue(encoder.encode('data: [DONE]\n\n'));

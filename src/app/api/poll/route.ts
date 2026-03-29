@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { pollFeeds } from '@/lib/rss';
-import { runPipeline, runSophiaPipeline } from '@/lib/agent';
+import { runPipeline } from '@/lib/agent';
 
 export const maxDuration = 300;
 
@@ -12,23 +12,13 @@ export async function POST(req: Request) {
 
   try {
     const { fetched, errors } = await pollFeeds();
-    let jcPublished: string[] = [];
-    let sophiaPublished: string[] = [];
+    let published: string[] = [];
 
     if (runAgent && fetched > 0) {
-      // Run both pipelines concurrently
-      [jcPublished, sophiaPublished] = await Promise.all([
-        runPipeline(),
-        runSophiaPipeline(),
-      ]);
+      published = await runPipeline();
     }
 
-    return NextResponse.json({
-      fetched,
-      errors,
-      published: [...jcPublished, ...sophiaPublished],
-      byAuthor: { 'Jean-Claude': jcPublished, 'Sophia': sophiaPublished },
-    });
+    return NextResponse.json({ fetched, errors, published });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

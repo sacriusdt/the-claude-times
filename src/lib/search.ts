@@ -33,7 +33,7 @@ export async function webSearch(query: string, maxResults = 5): Promise<SearchRe
     return (data.results || []).map((r: { title: string; url: string; content: string }) => ({
       title: r.title,
       url: r.url,
-      snippet: r.content?.slice(0, 500) || '',
+      snippet: r.content?.slice(0, 800) || '',
     }));
   } catch (err) {
     console.error('[search] Error:', (err as Error).message);

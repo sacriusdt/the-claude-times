@@ -2,77 +2,26 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-type Journalist = 'jean-claude' | 'sophia';
-
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
-const JOURNALISTS = {
-  'jean-claude': {
-    name: 'Jean-Claude',
-    initials: 'JC',
-    role: 'Senior Correspondent',
-    placeholder: 'Assign a story, request a rewrite, steer editorial direction…',
-    greeting: { title: 'Ready for assignment.', sub: "Drop a topic and I'll draft an article with a clear angle and publication-ready structure." },
-  },
-  sophia: {
-    name: 'Sophia',
-    initials: 'S',
-    role: 'Breaking News Desk',
-    placeholder: "What's the story? I'll get on it fast…",
-    greeting: { title: "What's breaking?", sub: "Give me a topic or a link and I'll turn it into something worth reading. Fast." },
-  },
-};
-
 export default function ChatInterface() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
-  const [journalist, setJournalist] = useState<Journalist>('jean-claude');
-  const [messagesByJournalist, setMessagesByJournalist] = useState<Record<Journalist, Message[]>>({
-    'jean-claude': [],
-    sophia: [],
-  });
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  const messages = messagesByJournalist[journalist];
-  const j = JOURNALISTS[journalist];
-
-  const setMessages = (updater: (prev: Message[]) => Message[]) => {
-    setMessagesByJournalist(prev => ({
-      ...prev,
-      [journalist]: updater(prev[journalist]),
-    }));
-  };
-
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
   useEffect(() => { scrollToBottom(); }, [messages, scrollToBottom]);
-
-  const loadHistory = async (j: Journalist, pwd: string) => {
-    const normalizedPassword = pwd.trim();
-
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: normalizedPassword, message: '__auth_check__', journalist: j }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.history) {
-          setMessagesByJournalist(prev => ({ ...prev, [j]: data.history }));
-        }
-      }
-    } catch { /* ignore */ }
-  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,7 +31,7 @@ export default function ChatInterface() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: normalizedPassword, message: '__auth_check__', journalist: 'jean-claude' }),
+        body: JSON.stringify({ password: normalizedPassword, message: '__auth_check__' }),
       });
       if (res.ok) {
         setPassword(normalizedPassword);
@@ -90,24 +39,14 @@ export default function ChatInterface() {
         setAuthError('');
         const data = await res.json();
         if (data.history) {
-          setMessagesByJournalist(prev => ({ ...prev, 'jean-claude': data.history }));
+          setMessages(data.history);
         }
-        // Pre-load Sophia's history too
-        loadHistory('sophia', normalizedPassword);
       } else {
         const data = await res.json().catch(() => ({ error: 'Invalid password' }));
         setAuthError(data.error || 'Invalid password');
       }
     } catch {
       setAuthError('Connection error');
-    }
-  };
-
-  const handleJournalistSwitch = (j: Journalist) => {
-    setJournalist(j);
-    // Load history for this journalist if not yet loaded
-    if (messagesByJournalist[j].length === 0) {
-      loadHistory(j, password);
     }
   };
 
@@ -124,7 +63,7 @@ export default function ChatInterface() {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: normalizedPassword, message: userMessage, journalist }),
+        body: JSON.stringify({ password: normalizedPassword, message: userMessage }),
       });
 
       if (!res.ok) throw new Error('Chat failed');
@@ -210,7 +149,7 @@ export default function ChatInterface() {
           </h2>
           <p className="ai-note mb-6">
             <span className="ai-sigil inline-flex mr-1.5">AI</span>
-            Editorial console · Jean-Claude &amp; Sophia
+            Editorial console · Jean-Claude
           </p>
           <input
             type="password"
@@ -241,36 +180,17 @@ export default function ChatInterface() {
 
   return (
     <div className="flex flex-col gap-0">
-      {/* ── Journalist switcher tabs ── */}
-      <div className="flex border-b border-brand-rule mb-6">
-        {(Object.entries(JOURNALISTS) as [Journalist, typeof JOURNALISTS[Journalist]][]).map(([key, info]) => (
-          <button
-            key={key}
-            onClick={() => handleJournalistSwitch(key)}
-            className={`flex items-center gap-2.5 px-5 py-3 font-[family-name:var(--font-heading)] text-xs font-bold uppercase tracking-widest border-b-2 transition-colors ${
-              journalist === key
-                ? 'border-brand-dark text-brand-dark'
-                : 'border-transparent text-brand-mid hover:text-brand-dark'
-            }`}
-          >
-            <span className="byline-avatar text-[9px]" style={{ width: 22, height: 22, fontSize: '0.5rem' }}>
-              {info.initials}
-            </span>
-            {info.name}
-          </button>
-        ))}
-      </div>
-
       {/* ── Chat window ── */}
       <div className="chat-container">
         {/* Header */}
         <div className="px-5 py-3 bg-brand-dark text-brand-light flex items-center justify-between gap-3 border-b border-brand-light/10">
           <div className="min-w-0">
             <div className="flex items-center gap-2.5">
-              <span className="font-[family-name:var(--font-heading)] font-black italic text-sm">{j.name}</span>
+              <span className="byline-avatar text-[9px]" style={{ width: 22, height: 22, fontSize: '0.5rem' }}>JC</span>
+              <span className="font-[family-name:var(--font-heading)] font-black italic text-sm">Jean-Claude</span>
               <span className="ai-sigil">AI</span>
             </div>
-            <p className="ai-note text-brand-light/30 mt-0.5">{j.role} · The Claude Times</p>
+            <p className="ai-note text-brand-light/30 mt-0.5">Senior Correspondent · The Claude Times</p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-brand-light/40" />
@@ -283,10 +203,10 @@ export default function ChatInterface() {
           {messages.length === 0 && (
             <div className="text-center py-12">
               <p className="font-[family-name:var(--font-heading)] italic text-xl font-bold text-brand-dark mb-2">
-                {j.greeting.title}
+                Ready for assignment.
               </p>
               <p className="font-[family-name:var(--font-body)] italic text-sm text-brand-mid max-w-md mx-auto leading-relaxed">
-                {j.greeting.sub}
+                Drop a topic and I&apos;ll draft an article with a clear angle and publication-ready structure.
               </p>
             </div>
           )}
@@ -295,7 +215,7 @@ export default function ChatInterface() {
             <div key={i} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`max-w-[86%] px-4 py-3 text-sm whitespace-pre-wrap ${msg.role === 'user' ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
                 <div className="font-[family-name:var(--font-heading)] text-[9px] uppercase tracking-widest mb-1.5 opacity-50">
-                  {msg.role === 'user' ? 'Editor' : j.name}
+                  {msg.role === 'user' ? 'Editor' : 'Jean-Claude'}
                 </div>
                 {msg.content}
               </div>
@@ -325,7 +245,7 @@ export default function ChatInterface() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={j.placeholder}
+              placeholder="Assign a story, request a rewrite, steer editorial direction…"
               rows={2}
               className="flex-1 px-4 py-2.5 border border-brand-rule bg-brand-light font-[family-name:var(--font-body)] text-sm resize-none focus:outline-none focus:border-brand-dark"
               disabled={loading}
