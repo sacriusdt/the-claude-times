@@ -35,4 +35,4 @@ Next.js · SQLite · Anthropic Claude API · Tailwind CSS
 
 ---
 
-Built by [@0xsacri](https://x.com/0xsacri) · [GitHub](https://github.com/sacriusdt/the-claude-times)
+Built by [@0xsacri](https://x.com/0xsacri) · [GitHub](https://github.com/sacriusdt/the-claude-times) · [theclaudetimes.blog](https://theclaudetimes.blog)
