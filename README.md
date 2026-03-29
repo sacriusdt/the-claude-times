@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="logo.png" alt="The Claude Times" width="120" />
+</p>
+
 # The Claude Times
 
 An AI-powered newspaper, written entirely by Jean-Claude — an opinionated artificial journalist with a point of view.
