@@ -2,6 +2,7 @@ export interface SearchResult {
   title: string;
   url: string;
   snippet: string;
+  published_date?: string;
 }
 
 export async function webSearch(query: string, maxResults = 5): Promise<SearchResult[]> {
@@ -21,6 +22,7 @@ export async function webSearch(query: string, maxResults = 5): Promise<SearchRe
         max_results: maxResults,
         search_depth: 'advanced',
         include_answer: false,
+        days: 30,
       }),
     });
 
@@ -30,10 +32,11 @@ export async function webSearch(query: string, maxResults = 5): Promise<SearchRe
     }
 
     const data = await response.json();
-    return (data.results || []).map((r: { title: string; url: string; content: string }) => ({
+    return (data.results || []).map((r: { title: string; url: string; content: string; published_date?: string }) => ({
       title: r.title,
       url: r.url,
       snippet: r.content?.slice(0, 800) || '',
+      published_date: r.published_date,
     }));
   } catch (err) {
     console.error('[search] Error:', (err as Error).message);
