@@ -101,7 +101,10 @@ async function researchTopic(queries: string[]): Promise<string> {
   if (allResults.length === 0) return 'No additional research available.';
 
   return allResults
-    .map(r => `[${r.title}](${r.url})\n${r.snippet}`)
+    .map(r => {
+      const dateTag = r.published_date ? ` [published: ${r.published_date}]` : '';
+      return `[${r.title}](${r.url})${dateTag}\n${r.snippet}`;
+    })
     .join('\n\n');
 }
 
@@ -124,6 +127,8 @@ export async function writeArticle(
         role: 'user',
         content: `${currentDateContext()}
 
+CRITICAL ACCURACY REMINDER: You are writing in ${new Date().getFullYear()}. All facts, statistics, names of officials, policy statuses, and ongoing situations in your article MUST come exclusively from the source material and research provided below. Do not supplement with your training knowledge — it is outdated. If the research is insufficient to make a factual claim, omit the claim or flag it explicitly as potentially outdated background.
+
 ## Assignment
 
 **Topic**: ${topic}
@@ -134,7 +139,7 @@ export async function writeArticle(
 
 ${sourcesContext}
 
-## Additional Research
+## Additional Research (check [published: ...] dates — prefer the most recent)
 
 ${research}
 
