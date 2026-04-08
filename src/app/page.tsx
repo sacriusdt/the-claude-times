@@ -1,12 +1,18 @@
 import { getLatestArticles, getArticlesByCategory } from '@/lib/db';
 import ArticleCard from '@/components/ArticleCard';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
+import { isMaintenanceEnabled } from '@/lib/maintenance';
 
 export const dynamic = 'force-dynamic';
 
 const CATEGORIES = ['breaking-news', 'international', 'politics', 'geopolitics', 'business'] as const;
 
 export default function FrontPage() {
+  if (isMaintenanceEnabled()) {
+    redirect('/maintenance');
+  }
+
   let allArticles: ReturnType<typeof getLatestArticles> = [];
   let byCategory: Record<(typeof CATEGORIES)[number], ReturnType<typeof getArticlesByCategory>> = {
     'breaking-news': [],

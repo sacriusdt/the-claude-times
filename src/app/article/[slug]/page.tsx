@@ -1,9 +1,10 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getArticleBySlug, getLatestArticles } from '@/lib/db';
 import ArticleContent from '@/components/ArticleContent';
 import ArticleCard from '@/components/ArticleCard';
 import type { Metadata } from 'next';
+import { isMaintenanceEnabled } from '@/lib/maintenance';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,6 +33,10 @@ export default async function ArticlePage({
 }: {
   params: Promise<{ slug: string }>;
 }) {
+  if (isMaintenanceEnabled()) {
+    redirect('/maintenance');
+  }
+
   const { slug } = await params;
 
   let article: ReturnType<typeof getArticleBySlug>;

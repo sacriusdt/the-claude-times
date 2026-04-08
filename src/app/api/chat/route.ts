@@ -3,6 +3,7 @@ import { writeArticleOnDemand } from '@/lib/agent';
 import { insertChatMessage, getChatHistory, getLatestArticles, deleteArticle } from '@/lib/db';
 import { JEAN_CLAUDE_SYSTEM, CHAT_SYSTEM } from '@/lib/personality';
 import { complete } from '@/lib/providers';
+import { isMaintenanceEnabled } from '@/lib/maintenance';
 
 export const maxDuration = 300;
 
@@ -31,7 +32,7 @@ export async function POST(req: Request) {
     } catch (error) {
       console.error('[chat] Auth check history failed:', error);
     }
-    return new Response(JSON.stringify({ ok: true, history }), { status: 200 });
+    return new Response(JSON.stringify({ ok: true, history, maintenance: isMaintenanceEnabled() }), { status: 200 });
   }
 
   try {
@@ -58,11 +59,16 @@ export async function POST(req: Request) {
   ];
 
   const encoder = new TextEncoder();
+  const maintenanceEnabled = isMaintenanceEnabled();
 
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        if (isDeleteRequest) {
+        if (maintenanceEnabled && (isDeleteRequest || isArticleRequest)) {
+          const reply = "Maintenance mode is active. Publishing and archive edits are temporarily disabled.";
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ text: reply })}\n\n`));
+          insertChatMessage('assistant', reply, 'jean-claude');
+        } else if (isDeleteRequest) {
           const articles = getLatestArticles(50);
 
           if (articles.length === 0) {

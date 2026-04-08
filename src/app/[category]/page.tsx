@@ -1,7 +1,8 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { getArticlesByCategory } from '@/lib/db';
 import ArticleCard from '@/components/ArticleCard';
 import type { Metadata } from 'next';
+import { isMaintenanceEnabled } from '@/lib/maintenance';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,6 +36,10 @@ export default async function CategoryPage({
 }: {
   params: Promise<{ category: string }>;
 }) {
+  if (isMaintenanceEnabled()) {
+    redirect('/maintenance');
+  }
+
   const { category } = await params;
   if (!VALID_CATEGORIES.includes(category as Category)) notFound();
 

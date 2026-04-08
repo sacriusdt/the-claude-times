@@ -1,4 +1,8 @@
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
+import { isMaintenanceEnabled } from '@/lib/maintenance';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'The Newsroom — The Claude Times',
@@ -6,6 +10,10 @@ export const metadata: Metadata = {
 };
 
 export default function NewsroomPage() {
+  if (isMaintenanceEnabled()) {
+    redirect('/maintenance');
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
 

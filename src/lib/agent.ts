@@ -13,6 +13,7 @@ import {
   ANALYSIS_PROMPT,
   ARTICLE_PROMPT,
 } from './personality';
+import { isMaintenanceEnabled } from './maintenance';
 
 function slugify(text: string): string {
   return text
@@ -679,6 +680,11 @@ export async function writeArticle(
 
 // Step 4: Full pipeline — analyze → research → write
 export async function runPipeline(): Promise<string[]> {
+  if (isMaintenanceEnabled()) {
+    console.log('[agent] Maintenance mode active — pipeline execution blocked');
+    return [];
+  }
+
   console.log('[agent] Starting editorial pipeline...');
   const published: string[] = [];
 
@@ -707,6 +713,11 @@ export async function writeArticleOnDemand(
   topic: string,
   instructions?: string,
 ): Promise<{ slug: string; title: string } | null> {
+  if (isMaintenanceEnabled()) {
+    console.log('[agent] Maintenance mode active — on-demand writing blocked');
+    return null;
+  }
+
   console.log(`[agent] On-demand article requested: "${topic}"`);
 
   const research = await researchTopic([

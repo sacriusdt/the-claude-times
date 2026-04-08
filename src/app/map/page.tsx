@@ -1,6 +1,8 @@
 import { getGeoArticles } from '@/lib/db';
 import MapClient from '@/components/MapClient';
 import type { Metadata } from 'next';
+import { redirect } from 'next/navigation';
+import { isMaintenanceEnabled } from '@/lib/maintenance';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +12,10 @@ export const metadata: Metadata = {
 };
 
 export default function MapPage() {
+  if (isMaintenanceEnabled()) {
+    redirect('/maintenance');
+  }
+
   let articles: ReturnType<typeof getGeoArticles> = [];
 
   try {

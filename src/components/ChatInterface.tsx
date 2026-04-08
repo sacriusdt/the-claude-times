@@ -14,6 +14,9 @@ export default function ChatInterface() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceBusy, setMaintenanceBusy] = useState(false);
+  const [maintenanceError, setMaintenanceError] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -38,6 +41,7 @@ export default function ChatInterface() {
         setAuthenticated(true);
         setAuthError('');
         const data = await res.json();
+        setMaintenanceEnabled(!!data.maintenance);
         if (data.history) {
           setMessages(data.history);
         }
@@ -47,6 +51,33 @@ export default function ChatInterface() {
       }
     } catch {
       setAuthError('Connection error');
+    }
+  };
+
+  const toggleMaintenance = async () => {
+    if (maintenanceBusy) return;
+    const normalizedPassword = password.trim();
+    setMaintenanceBusy(true);
+    setMaintenanceError('');
+
+    try {
+      const res = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: normalizedPassword, enabled: !maintenanceEnabled }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMaintenanceError(data.error || 'Failed to update maintenance mode');
+        return;
+      }
+
+      setMaintenanceEnabled(!!data.enabled);
+    } catch {
+      setMaintenanceError('Connection error while updating maintenance mode');
+    } finally {
+      setMaintenanceBusy(false);
     }
   };
 
@@ -180,6 +211,17 @@ export default function ChatInterface() {
 
   return (
     <div className="flex flex-col gap-0">
+      {maintenanceEnabled && (
+        <div className="mb-3 px-4 py-3 border border-brand-rule bg-brand-dark text-brand-light">
+          <p className="font-[family-name:var(--font-heading)] text-xs font-bold uppercase tracking-widest">
+            Maintenance Mode Active
+          </p>
+          <p className="font-[family-name:var(--font-body)] italic text-xs mt-1 opacity-80">
+            Public pages and backend publication routes are paused.
+          </p>
+        </div>
+      )}
+
       {/* ── Chat window ── */}
       <div className="chat-container">
         {/* Header */}
@@ -193,10 +235,27 @@ export default function ChatInterface() {
             <p className="ai-note text-brand-light/30 mt-0.5">Senior Correspondent · The Claude Times</p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
-            <span className="w-1.5 h-1.5 rounded-full bg-brand-light/40" />
-            <span className="font-[family-name:var(--font-heading)] text-[10px] italic text-brand-light/30">Online</span>
+            <button
+              type="button"
+              onClick={toggleMaintenance}
+              disabled={maintenanceBusy}
+              className={`px-2.5 py-1 border text-[10px] font-[family-name:var(--font-heading)] font-bold uppercase tracking-widest transition-opacity ${
+                maintenanceEnabled
+                  ? 'border-brand-orange text-brand-orange hover:opacity-80'
+                  : 'border-brand-light/30 text-brand-light/60 hover:opacity-80'
+              } disabled:opacity-40`}
+            >
+              {maintenanceBusy ? '...' : maintenanceEnabled ? 'Maintenance On' : 'Maintenance Off'}
+            </button>
           </div>
         </div>
+        {maintenanceError && (
+          <div className="px-4 py-2 border-b border-brand-rule bg-brand-light">
+            <p className="font-[family-name:var(--font-heading)] italic text-xs text-brand-mid">
+              {maintenanceError}
+            </p>
+          </div>
+        )}
 
         {/* Messages */}
         <div className="chat-messages">
