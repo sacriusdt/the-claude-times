@@ -7,3 +7,4 @@ data/*.db-shm
 data/*.db-wal
 *.tsbuildinfo
 next-env.d.ts
+commands.txt
